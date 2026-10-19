@@ -12,6 +12,8 @@
 
 `compose.beta.yaml` tem nome de projeto e volumes diferentes do Compose de desenvolvimento. Segredos locais são arquivos montados apenas nos serviços necessários. Certificado/chave TLS são montados somente no Nginx; a chave-mestra setorial, somente em backend e worker. Variáveis em `deploy/beta.env` não devem conter segredos.
 
+`PUBLIC_HOSTNAME` e `ADMIN_HOSTNAME` entram no `ALLOWED_HOSTS`; ambos precisam constar do SAN do certificado. As portas de usuário e admin devem receber apenas tráfego das redes internas autorizadas, e nenhuma rota de entrada da Internet. PostgreSQL e Valkey não têm portas de host; o worker pode abrir HTTPS à OpenAI pela rede `egress`, mas o Compose **não** aplica filtro por destino. Firewall e ACL/VLAN são obrigatórios. Fontes da interface são servidas pelo próprio Nginx, sem chamada do navegador ao Google Fonts.
+
 ## Estados e proteção
 
 Upload temporário não vai à IA antes de confirmação explícita. Processamento é assíncrono; o original/vídeo é removido após transcrição bem-sucedida, e o áudio MP3 permanece para reprodução até exclusão/purga. Exclusão oculta a reunião imediatamente; o administrador pode restaurá-la por 72 horas, após o que a purga remove banco e mídia. Backups podem prolongar a retenção e exigem política própria. Eventos ativos de auditoria/sistema têm retenção de 90 dias. Acesso entre usuários é por dono; partilha setorial concede leitura; transferência muda a propriedade da reunião.
@@ -19,3 +21,5 @@ Upload temporário não vai à IA antes de confirmação explícita. Processamen
 ## Limites atuais
 
 Não há modo offline nem integração LDAP. Custos de IA são estimados. O limite configurável de upload pode chegar a 5 GiB, mas carga/recuperação nesse extremo precisa de aceite operacional. Compose em host único não fornece alta disponibilidade. Um backup só é válido depois de restauração ensaiada, incluindo a chave de cifragem setorial. Certificado confiável e firewall corporativo são responsabilidade do operador; o instalador só valida par, validade temporal e SAN, não a cadeia de confiança no navegador.
+
+As bases Docker são fixadas por digest no pacote beta. A varredura Trivy preliminar ainda apontou vulnerabilidades críticas/altas no backend e no utilitário `gosu` da imagem PostgreSQL; não há aceite de produção. O operador deve atualizar/revalidar imagens e avaliar esses riscos antes de dados reais.

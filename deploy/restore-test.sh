@@ -6,7 +6,7 @@ cd -- "$root"
 [[ $# -eq 1 && -d "$1" ]] || { echo 'Uso: restore-test.sh /caminho/do/backup' >&2; exit 2; }
 backup="$(cd -- "$1" && pwd -P)"
 docker run --rm --network none -v "$backup:/backup:ro" -v "$root/deploy:/deploy:ro" \
-  python:3.12.12-slim-bookworm python /deploy/manifest.py verify /backup
+  python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/manifest.py verify /backup
 project='scribrief-restore-check'
 compose_base=(docker compose -p "$project" --env-file "$backup/beta.env" -f "$root/compose.beta.yaml")
 [[ -z "$("${compose_base[@]}" ps -q --all db)" ]] || { echo 'Clone de restauração já existe; não sobrescrever.' >&2; exit 1; }

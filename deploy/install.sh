@@ -34,7 +34,7 @@ new_secret() {
     [[ -s "$secret_dir/$name" ]] || { echo "Segredo existente vazio: $name" >&2; exit 1; }
     return
   fi
-  value="$(docker run --rm --network none python:3.12.12-slim-bookworm python -c "import base64,secrets; x=base64.urlsafe_b64encode(secrets.token_bytes($size)).decode(); print(x if $padded else x.rstrip('='))")"
+  value="$(docker run --rm --network none python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python -c "import base64,secrets; x=base64.urlsafe_b64encode(secrets.token_bytes($size)).decode(); print(x if $padded else x.rstrip('='))")"
   [[ ${#value} -ge 20 ]] || { echo "Falha ao gerar $name" >&2; exit 1; }
   printf '%s' "$value" > "$secret_dir/$name"
 }
@@ -50,7 +50,7 @@ fi
 [[ -s "$cert_dir/localhost.crt" && -s "$cert_dir/localhost.key" ]] || {
   echo 'Instale certificado e chave TLS confiáveis com --certificate/--private-key.' >&2; exit 1;
 }
-docker run --rm --network none -v "$root/deploy:/deploy:ro" python:3.12.12-slim-bookworm python /deploy/check_tls.py /deploy
+docker run --rm --network none -v "$root/deploy:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy
 compose() { docker compose --env-file "$env_file" -f "$compose_file" "$@"; }
 compose config --quiet
 compose up -d --build db redis backend

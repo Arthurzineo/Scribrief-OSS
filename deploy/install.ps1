@@ -64,7 +64,7 @@ if (-not ((Test-Path -LiteralPath (Join-Path $certDir 'localhost.crt')) -and
            (Test-Path -LiteralPath (Join-Path $certDir 'localhost.key')))) {
     throw 'Instale certificado e chave TLS confiáveis com -Certificate e -PrivateKey (ou coloque-os em deploy/certs).'
 }
-& docker run --rm --network none -v "${PSScriptRoot}:/deploy:ro" python:3.12.12-slim-bookworm python /deploy/check_tls.py /deploy
+& docker run --rm --network none -v "${PSScriptRoot}:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy
 if ($LASTEXITCODE -ne 0) { throw 'Preflight TLS/configuração não aprovado.' }
 
 Push-Location $root

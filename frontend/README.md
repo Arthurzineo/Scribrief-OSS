@@ -1,20 +1,12 @@
 # Scribrief — frontend integrado
 
-Frontend entregue pelo usuário em `ata-frontend.zip` e mantido em `frontend/`. A direção visual e os componentes originais estão documentados em `docs/brief.md`, `docs/design-system.md`, `docs/telas.md` e `docs/tokens.json`. A integração preserva o desenho editorial; só acrescenta consentimento explícito e correções de contraste.
+Frontend React/Vite do Scribrief, mantido em `frontend/`. A direção visual editorial está documentada em `docs/brief.md`, `docs/design-system.md`, `docs/telas.md` e `docs/tokens.json`. A aplicação inclui consentimento explícito e ajustes de acessibilidade.
 
 ## Executar
 
-Na raiz do projeto, configure `.env` a partir de `.env.example`, então:
+Para instalar o sistema completo em rede interna, siga o `README.md` da raiz, que usa `compose.beta.yaml` e `deploy/install.ps1`/`deploy/install.sh`. Não exponha a interface à Internet e não use gravações reais sem autorização para enviá-las ao provedor externo.
 
-```powershell
-./scripts/new-dev-cert.ps1
-docker compose up -d --build
-docker compose exec -T backend python manage.py migrate --noinput
-```
-
-Acesse `https://127.0.0.1:18574/` (certificado autoassinado local). O endereço `http://127.0.0.1:18573/` redireciona para HTTPS. Nginx serve os arquivos estáticos do React e encaminha páginas MVT e `/api/` ao Django na mesma origem. Não use uploads reais sem consentimento dos participantes e chave/ambiente autorizados.
-
-Para desenvolvimento com Vite, use o override `docker-compose.dev.yml` para publicar o backend só no loopback, `npm ci` e `npm run dev`. `VITE_API_URL=/api/v1` e `VITE_API_PROXY=http://127.0.0.1:8000` são os valores locais.
+Para desenvolvimento da interface, execute `npm ci` e `npm run dev` nesta pasta, com um backend de teste separado. Defina `VITE_API_URL=/api/v1` e `VITE_API_PROXY=http://127.0.0.1:8000` para o proxy local se necessário. Em produção, o Nginx do Compose serve os arquivos estáticos do React e encaminha páginas MVT e `/api/` ao Django na mesma origem.
 
 ## Contrato real
 

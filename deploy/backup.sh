@@ -48,5 +48,5 @@ docker cp "$worker_id:/app/dados/." "$backup/media"
 cp -- "$root/deploy/beta.env" "$backup/beta.env"
 cp -- "$root"/deploy/secrets/* "$backup/secrets/"
 docker run --rm --network none -v "$backup:/backup" -v "$root/deploy:/deploy:ro" \
-  python:3.12.12-slim-bookworm python /deploy/manifest.py create /backup
+  python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/manifest.py create /backup
 echo "Backup criado em $backup. Contém dados e segredos em claro; proteja-o e teste a restauração."

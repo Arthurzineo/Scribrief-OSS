@@ -1,0 +1,18 @@
+title = "Scribrief: exceções estritas para fixtures sintéticas"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Credencial sintética exata do teste de fronteira de provedor"
+condition = "AND"
+regexTarget = "line"
+paths = ['''(^|/)backend/tests/test_ai_provider_boundary\.py$''']
+regexes = ['''^\s*secret = "synthetic-secret-123456"\s*$''']
+
+[[allowlists]]
+description = "Referência pública exata da imagem Valkey fixada por digest"
+condition = "AND"
+regexTarget = "line"
+paths = ['''(^|/)compose\.beta\.yaml$''']
+regexes = ['''^\s*image: valkey/valkey:8\.1\.10-alpine3\.24@sha256:081c2f5cb575efc901aa80ff9cdbd1ec6a301682fd35e1ebb4b0990a4a4a8507\s*$''']
