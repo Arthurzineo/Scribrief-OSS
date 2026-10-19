@@ -76,3 +76,4 @@ def test_admin_tls_requires_staff_password_and_never_returns_key(api, user, tmp_
     assert (
         AuditEvent.objects.filter(action="tls_certificate_rotation", outcome="success").count() == 1
     )
+    assert AuditEvent.objects.filter(action="tls_certificate_rotation_requested").count() == 1

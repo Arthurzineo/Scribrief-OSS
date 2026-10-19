@@ -12,7 +12,14 @@ from rest_framework.views import APIView
 from apps.audit.models import record_audit
 
 from ..permissions import ActiveStaff
-from ..tls_service import MAX_PEM_BYTES, TLS_ROOT, current_status, hostnames, install_pair
+from ..tls_service import (
+    MAX_PEM_BYTES,
+    TLS_ROOT,
+    current_status,
+    hostnames,
+    install_pair,
+    validate_pair,
+)
 
 
 class TLSUploadSerializer(serializers.Serializer):
@@ -66,8 +73,10 @@ class AdminTLSView(APIView):
                 details={"reason": "missing_or_large_file"},
             )
             raise serializers.ValidationError("Envie certificado e chave PEM com até 64 KiB cada.")
+        certificate_pem = certificate.read()
+        key_pem = private_key.read()
         try:
-            details = install_pair(certificate.read(), private_key.read(), hostnames())
+            preview = validate_pair(certificate_pem, key_pem, hostnames())
         except ValueError as exc:
             record_audit(
                 request.user,
@@ -78,6 +87,27 @@ class AdminTLSView(APIView):
                 details={"reason": "invalid_pair"},
             )
             raise serializers.ValidationError(str(exc)) from None
+        # Persist intent before touching the filesystem. Even if a later audit
+        # write fails, the rotation attempt remains visible to the operator.
+        record_audit(
+            request.user,
+            "tls_certificate_rotation_requested",
+            request=request,
+            target_type="tls",
+            details={"fingerprint_sha256": preview["fingerprint_sha256"]},
+        )
+        try:
+            details = install_pair(certificate_pem, key_pem, hostnames())
+        except (ValueError, OSError):
+            record_audit(
+                request.user,
+                "tls_certificate_rotation",
+                outcome="failed",
+                request=request,
+                target_type="tls",
+                details={"reason": "activation_failed"},
+            )
+            raise serializers.ValidationError("Não foi possível ativar o par TLS.") from None
         record_audit(
             request.user,
             "tls_certificate_rotation",
