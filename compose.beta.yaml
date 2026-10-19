@@ -7,10 +7,9 @@ services:
     ports:
       - "${PUBLIC_BIND_IP:-127.0.0.1}:${PUBLIC_HTTPS_PORT:-18574}:8443"
       - "${ADMIN_BIND_IP:-127.0.0.1}:${ADMIN_HTTPS_PORT:-18575}:9443"
-    # Bind only the two TLS files; never mount the host's private cert directory.
-    volumes:
-      - ./deploy/certs/localhost.crt:/etc/nginx/certs/localhost.crt:ro
-      - ./deploy/certs/localhost.key:/etc/nginx/certs/localhost.key:ro
+    # Dedicated named volume: frontend reads TLS material, backend rotates it.
+    volumes: [tls:/etc/nginx/certs:ro]
+    command: ["/bin/sh", "-c", "/usr/local/bin/tls-watch.sh & exec nginx -g 'daemon off;'" ]
     depends_on:
       backend: {condition: service_healthy}
     networks: [internal, public]
@@ -42,8 +41,11 @@ services:
       DJANGO_ALLOWED_HOSTS: "${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME},${ADMIN_HOSTNAME:-127.0.0.1},127.0.0.1,localhost"
       FRONTEND_ORIGIN: "https://${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME}:${PUBLIC_HTTPS_PORT:-18574}"
       MAX_UPLOAD_MB: "${MAX_UPLOAD_MB:-5120}"
+      PUBLIC_HOSTNAME: "${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME}"
+      ADMIN_HOSTNAME: "${ADMIN_HOSTNAME:-127.0.0.1}"
+      TLS_ROOT: /app/tls
     secrets: [django_secret, database_password, redis_password, sector_key]
-    volumes: [media:/app/dados]
+    volumes: [media:/app/dados, tls:/app/tls]
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -148,6 +150,7 @@ secrets:
 volumes:
   pgdata:
   media:
+  tls:
 
 networks:
   internal: {internal: true}

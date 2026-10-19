@@ -697,6 +697,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/SystemEvent'
           description: ''
+  /api/admin/tls/:
+    get:
+      operationId: admin_tls_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: admin_tls_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TLSUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/admin/usage/:
     get:
       operationId: admin_usage_list
@@ -728,6 +763,21 @@ paths:
           type: integer
         description: Um valor inteiro único que identifica este ai usage event.
         required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageEvent'
+          description: ''
+  /api/admin/usage/meetings/:
+    get:
+      operationId: admin_usage_meetings_retrieve
+      description: Paginated per-meeting ledger totals, including unknown-price calls.
       tags:
       - admin
       security:
@@ -990,6 +1040,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Meeting'
           description: ''
+  /api/v1/meetings/{id}/confirm-upload/:
+    post:
+      operationId: v1_meetings_confirm_upload_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmUpload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfirmUpload'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfirmUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: ''
   /api/v1/meetings/{id}/correction-suggestions/:
     get:
       operationId: v1_meetings_correction_suggestions_retrieve
@@ -1057,6 +1141,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/CorrectionResponse'
           description: ''
+  /api/v1/meetings/{id}/discard-upload/:
+    post:
+      operationId: v1_meetings_discard_upload_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/meetings/{id}/mind-map/:
     get:
       operationId: v1_meetings_mind_map_retrieve
@@ -1758,6 +1860,12 @@ paths:
       security:
       - cookieAuth: []
       responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StagedUpload'
+          description: ''
         '202':
           content:
             application/json:
@@ -2230,6 +2338,13 @@ components:
       - created_at
       - id
       - outcome
+    ConfirmUpload:
+      type: object
+      properties:
+        consent_confirmed:
+          type: boolean
+      required:
+      - consent_confirmed
     CorrectionRequest:
       type: object
       properties:
@@ -3099,6 +3214,21 @@ components:
       - status
       - uses
       - version
+    StagedUpload:
+      type: object
+      properties:
+        meeting_id:
+          type: string
+          format: uuid
+        awaiting_consent:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - awaiting_consent
+      - expires_at
+      - meeting_id
     Status:
       type: object
       properties:
@@ -3216,6 +3346,22 @@ components:
       - event_code
       - id
       - user_name
+    TLSUpload:
+      type: object
+      properties:
+        certificate:
+          type: string
+          format: uri
+        private_key:
+          type: string
+          format: uri
+        current_password:
+          type: string
+          writeOnly: true
+      required:
+      - certificate
+      - current_password
+      - private_key
     TranscriptionProgress:
       type: object
       properties:
@@ -3257,8 +3403,8 @@ components:
           format: uri
         consent_confirmed:
           type: boolean
+          default: false
       required:
-      - consent_confirmed
       - file
     UsageEvent:
       type: object

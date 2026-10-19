@@ -63,6 +63,22 @@ test('mutation obtains CSRF cookie and sends it without bearer token', async () 
   assert.equal(calls[1].options.credentials, 'same-origin');
 });
 
+test('certificate multipart upload keeps browser boundary and CSRF', async () => {
+  globalThis.document = { cookie: 'csrftoken=xyz' };
+  globalThis.window = new EventTarget();
+  let sent;
+  globalThis.fetch = async (_url, options) => {
+    sent = options;
+    return { ok: true, status: 200, text: async () => '{"configured":true}' };
+  };
+  const form = new FormData();
+  form.append('current_password', 'synthetic');
+  await request('POST', '/api/admin/tls/', { form });
+  assert.equal(sent.body, form);
+  assert.equal(sent.headers['Content-Type'], undefined);
+  assert.equal(sent.headers['X-CSRFToken'], 'xyz');
+});
+
 test('exports topic-based minutes', () => {
   const meeting = { title: 'Pautas', date: '2026-10-08', durationSeconds: 60 };
   const common = { summary: 'Resumo', decisions: [], tasks: [] };

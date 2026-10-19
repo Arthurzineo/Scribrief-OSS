@@ -8,9 +8,9 @@
 - **Celery Beat:** agendamento de tarefas periódicas, sem saída ao provedor externo.
 - **PostgreSQL:** usuários, reuniões, segmentos, atas, empregos, estado e auditoria; nenhum áudio/vídeo BLOB.
 - **Valkey:** serviço de fila/cache compatível com o protocolo Redis; não é fonte autoritativa de reuniões.
-- **Volumes `media`/`pgdata`:** mídia privada no sistema de arquivos e dados relacionais, respectivamente. Ambos devem constar do mesmo plano de recuperação.
+- **Volumes `media`/`pgdata`/`tls`:** mídia privada, dados relacionais e par HTTPS ativo, respectivamente. Todos devem constar do mesmo plano de recuperação.
 
-`compose.beta.yaml` tem nome de projeto e volumes diferentes do Compose de desenvolvimento. Segredos locais são arquivos montados apenas nos serviços necessários. Certificado/chave TLS são montados somente no Nginx; a chave-mestra setorial, somente em backend e worker. Variáveis em `deploy/beta.env` não devem conter segredos.
+`compose.beta.yaml` tem nome de projeto e volumes diferentes do Compose de desenvolvimento. Segredos locais são arquivos montados apenas nos serviços necessários. O volume `tls` é gravável apenas pelo backend e somente leitura no Nginx, sem socket Docker; worker/banco não recebem o certificado/chave. O instalador inicializa-o como root uma única vez, com diretório `0750`, arquivo `0640`, dono app e grupo leitor 101. O backend pertence também ao grupo 101 e o atribui explicitamente ao novo PEM, pois volumes Docker Desktop podem não preservar setgid. O backend troca um PEM combinado por substituição atômica; watcher não privilegiado no frontend verifica mudança, `nginx -t` e recarga graciosa, sem expor chave em HTTP ou logs. A chave-mestra setorial é fornecida somente a backend e worker. Variáveis em `deploy/beta.env` não devem conter segredos.
 
 `PUBLIC_HOSTNAME` e `ADMIN_HOSTNAME` entram no `ALLOWED_HOSTS`; ambos precisam constar do SAN do certificado. As portas de usuário e admin devem receber apenas tráfego das redes internas autorizadas, e nenhuma rota de entrada da Internet. PostgreSQL e Valkey não têm portas de host; o worker pode abrir HTTPS à OpenAI pela rede `egress`, mas o Compose **não** aplica filtro por destino. Firewall e ACL/VLAN são obrigatórios. Fontes da interface são servidas pelo próprio Nginx, sem chamada do navegador ao Google Fonts.
 
@@ -20,6 +20,6 @@ Upload temporário não vai à IA antes de confirmação explícita. Processamen
 
 ## Limites atuais
 
-Não há modo offline nem integração LDAP. Custos de IA são estimados. O limite configurável de upload pode chegar a 5 GiB, mas carga/recuperação nesse extremo precisa de aceite operacional. Compose em host único não fornece alta disponibilidade. Um backup só é válido depois de restauração ensaiada, incluindo a chave de cifragem setorial. Certificado confiável e firewall corporativo são responsabilidade do operador; o instalador só valida par, validade temporal e SAN, não a cadeia de confiança no navegador.
+Não há modo offline nem integração LDAP. Custos de IA são estimados. O limite configurável de upload pode chegar a 5 GiB, mas carga/recuperação nesse extremo precisa de aceite operacional. Compose em host único não fornece alta disponibilidade. Um backup só é válido depois de restauração ensaiada, incluindo a chave de cifragem setorial e o TLS. O autoassinado inicial vence após 90 dias e precisa ser confiado pelos clientes ou substituído por CA corporativa; o servidor valida par, validade e SAN, **não** a cadeia de confiança do navegador. Firewall corporativo continua responsabilidade do operador.
 
 As bases Docker são fixadas por digest no pacote beta. A varredura Trivy preliminar ainda apontou vulnerabilidades críticas/altas no backend e no utilitário `gosu` da imagem PostgreSQL; não há aceite de produção. O operador deve atualizar/revalidar imagens e avaliar esses riscos antes de dados reais.

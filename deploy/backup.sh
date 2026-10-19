@@ -38,13 +38,15 @@ fi
 compose stop backend worker beat
 jobs_stopped=1
 umask 077
-mkdir -p -- "$backup/media" "$backup/secrets"
+mkdir -p -- "$backup/media" "$backup/secrets" "$backup/tls"
 compose exec -T db pg_dump -Fc -U scribrief -d scribrief -f /tmp/scribrief-beta.dump
 db_id="$(compose ps -q db)"
 worker_id="$(compose ps -q --all worker)"
-[[ -n "$db_id" && -n "$worker_id" ]] || { echo 'Banco ou worker ausente.' >&2; exit 1; }
+backend_id="$(compose ps -q --all backend)"
+[[ -n "$db_id" && -n "$worker_id" && -n "$backend_id" ]] || { echo 'Banco, backend ou worker ausente.' >&2; exit 1; }
 docker cp "$db_id:/tmp/scribrief-beta.dump" "$backup/database.dump"
 docker cp "$worker_id:/app/dados/." "$backup/media"
+docker cp "$backend_id:/app/tls/current.pem" "$backup/tls/current.pem"
 cp -- "$root/deploy/beta.env" "$backup/beta.env"
 cp -- "$root"/deploy/secrets/* "$backup/secrets/"
 docker run --rm --network none -v "$backup:/backup" -v "$root/deploy:/deploy:ro" \

@@ -10,6 +10,7 @@ import AdminJobsPanel from './AdminJobsPanel.jsx';
 import AdminDeletionPanel from './AdminDeletionPanel.jsx';
 import AdminHealthPanel from './AdminHealthPanel.jsx';
 import SectorPromptPanel from './SectorPromptPanel.jsx';
+import AdminTlsPanel from './AdminTlsPanel.jsx';
 
 const emptySector = { name: '', slug: '', is_active: true, max_upload_minutes: '', max_monthly_minutes_per_user: '' };
 const emptyUser = { username: '', first_name: '', last_name: '', email: '', sector_id: '', password: '' };
@@ -185,6 +186,7 @@ export default function AdminPage() {
       <button className={`at-tab ${tab === 'audit' ? 'at-tab--active' : ''}`} role="tab" aria-selected={tab === 'audit'} onClick={() => setTab('audit')}>Auditoria</button>
       <button className={`at-tab ${tab === 'system' ? 'at-tab--active' : ''}`} role="tab" aria-selected={tab === 'system'} onClick={() => setTab('system')}>Registros do sistema</button>
       <button className={`at-tab ${tab === 'security' ? 'at-tab--active' : ''}`} role="tab" aria-selected={tab === 'security'} onClick={() => setTab('security')}>Minha senha</button>
+      <button className={`at-tab ${tab === 'tls' ? 'at-tab--active' : ''}`} role="tab" aria-selected={tab === 'tls'} onClick={() => setTab('tls')}>Certificado HTTPS</button>
     </div>
     {error ? <InlineNotice tone="erro">{error}</InlineNotice> : null}
     {notice ? <InlineNotice tone="sucesso">{notice}</InlineNotice> : null}
@@ -194,6 +196,7 @@ export default function AdminPage() {
     {tab === 'deletions' ? <AdminDeletionPanel /> : null}
     {tab === 'audit' ? <AdminAuditPanel sectors={sectorChoices} users={users} /> : null}
     {tab === 'system' ? <AdminSystemLogPanel /> : null}
+    {tab === 'tls' ? <AdminTlsPanel /> : null}
     {tab === 'ai' ? <section className="admin-card admin-form admin-ai-config">
       <h2 className="t-sec">Configuração de IA por setor</h2>
       <p className="muted">Escolha um setor para configurar sua chave de API e as instruções da IA usadas nas próximas execuções. As configurações de um setor não afetam os demais.</p>

@@ -5,14 +5,14 @@
 ## Antes da mudança
 
 1. Registre versão/commit, imagens por digest, migrações pendentes, quantidade de reuniões e jobs ativos. Interrompa novos uploads; espere jobs terminarem ou cancele-os pelo painel. Não interrompa uma transcrição em andamento para atualizar imagens.
-2. Faça backup **frio** de PostgreSQL, volume de mídia e `deploy/secrets/` com `deploy/backup.ps1 -EncryptedDestination ... -AcknowledgeProtectedStorage` ou `deploy/backup.sh --encrypted-destination ... --ack-protected-storage`. O destino deve ser cifrado e protegido: os scripts não criptografam o bundle. Guarde-o fora do host.
+2. Faça backup **frio** de PostgreSQL, volumes de mídia/TLS e `deploy/secrets/` com `deploy/backup.ps1 -EncryptedDestination ... -AcknowledgeProtectedStorage` ou `deploy/backup.sh --encrypted-destination ... --ack-protected-storage`. O destino deve ser cifrado e protegido: os scripts não criptografam o bundle. Guarde-o fora do host.
 3. Rode `deploy/restore-test.ps1 -BackupDirectory ...` ou `deploy/restore-test.sh ...` em clone isolado e confira reunião, segmentos, arquivo MP3, permissões e chave de IA. Um `pg_dump` sem mídia/chave não basta. Guarde o código/imagens da versão anterior para reversão.
 4. Teste a atualização no clone, inclusive imagem PostgreSQL. Versões **major** do PostgreSQL exigem plano de migração específico; a troca 16.6→16.15 ensaiada aqui foi apenas patch no major 16, com 1 reunião sintética.
 
 ## Aplicar
 
-1. Troque para o pacote aprovado, mantendo `deploy/beta.env`, `deploy/secrets/`, `deploy/certs/` e volumes originais. Nunca copie segredos para Git ou para uma issue.
-2. Execute o instalador correspondente com certificado/chave atuais e `SkipAdmin`/`--skip-admin`. Ele valida TLS/Compose, constrói, sobe DB/Valkey/backend, migra e checa Django, depois sobe worker/Beat/frontend. **Migrações não são revertidas automaticamente.**
+1. Troque para o pacote aprovado, mantendo `deploy/beta.env`, `deploy/secrets/`, os volumes originais (inclusive `tls`) e, se presentes, `deploy/certs/` legados. Nunca copie segredos para Git ou para uma issue.
+2. Execute o instalador correspondente **sem** certificado/chave para preservar o volume TLS atual, com `SkipAdmin`/`--skip-admin`. Ele valida configuração/Compose, constrói, sobe DB/Valkey/backend, migra e checa Django, depois sobe worker/Beat/frontend. Certificados explícitos substituem o ativo; prefira o painel admin para rotação. **Migrações não são revertidas automaticamente.**
 3. Confira `docker compose --env-file deploy/beta.env -f compose.beta.yaml ps`; login e CSRF na porta pública; 404 para `/admin/` público; painel admin apenas pela rede de gestão; upload/consulta com mídia **sintética**; logs de erro e Health. Confirme que nenhuma porta de banco/Valkey/backend está publicada.
 4. Monitore filas, disco, erros, custo e backup da primeira janela. Atualize o registro operacional com versão, horário, operador e resultado.
 

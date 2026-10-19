@@ -53,23 +53,36 @@ Write-NewSecret 'redis_password' 48 $false
 Write-NewSecret 'sector_key' 32 $true
 
 if ($Certificate -xor $PrivateKey) { throw 'Informe Certificate e PrivateKey juntos.' }
+$legacyImport = $false
+if (-not $Certificate -and -not $PrivateKey) {
+    $oldCert = Join-Path $certDir 'localhost.crt'
+    $oldKey = Join-Path $certDir 'localhost.key'
+    if ((Test-Path -LiteralPath $oldCert) -and (Test-Path -LiteralPath $oldKey)) {
+        $Certificate = $oldCert; $PrivateKey = $oldKey; $legacyImport = $true
+    }
+}
 if ($Certificate) {
     foreach ($source in @($Certificate, $PrivateKey)) {
         if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Arquivo TLS não encontrado: $source" }
     }
-    Copy-Item -LiteralPath $Certificate -Destination (Join-Path $certDir 'localhost.crt') -Force
-    Copy-Item -LiteralPath $PrivateKey -Destination (Join-Path $certDir 'localhost.key') -Force
+    $Certificate = (Resolve-Path -LiteralPath $Certificate).Path
+    $PrivateKey = (Resolve-Path -LiteralPath $PrivateKey).Path
 }
-if (-not ((Test-Path -LiteralPath (Join-Path $certDir 'localhost.crt')) -and
-           (Test-Path -LiteralPath (Join-Path $certDir 'localhost.key')))) {
-    throw 'Instale certificado e chave TLS confiáveis com -Certificate e -PrivateKey (ou coloque-os em deploy/certs).'
-}
-& docker run --rm --network none -v "${PSScriptRoot}:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy
+& docker run --rm --network none -v "${PSScriptRoot}:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy --config-only
 if ($LASTEXITCODE -ne 0) { throw 'Preflight TLS/configuração não aprovado.' }
 
 Push-Location $root
 try {
     Invoke-Compose @('config', '--quiet')
+    Invoke-Compose @('build', 'backend')
+    $tlsArgs = @('run', '--rm', '--no-deps', '--user', 'root', '--cap-add', 'CHOWN', '--cap-add', 'FOWNER', '--cap-add', 'DAC_OVERRIDE')
+    if ($Certificate) {
+        $tlsArgs += @('-v', "${Certificate}:/source/certificate:ro", '-v', "${PrivateKey}:/source/private-key:ro")
+    }
+    $tlsArgs += @('backend', 'python', '-m', 'apps.admin_panel.tls_bootstrap')
+    if ($Certificate) { $tlsArgs += @('--certificate', '/source/certificate', '--private-key', '/source/private-key') }
+    if ($legacyImport) { $tlsArgs += '--preserve-existing' }
+    Invoke-Compose $tlsArgs
     Invoke-Compose @('up', '-d', '--build', 'db', 'redis', 'backend')
     Invoke-Compose @('exec', '-T', 'backend', 'python', 'manage.py', 'migrate', '--noinput')
     Invoke-Compose @('exec', '-T', 'backend', 'python', 'manage.py', 'check')

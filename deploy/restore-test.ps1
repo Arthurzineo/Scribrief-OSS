@@ -7,6 +7,9 @@ $backup = (Resolve-Path -LiteralPath $BackupDirectory).Path
 $manifestPath = Join-Path $backup 'manifest.json'
 if (-not (Test-Path -LiteralPath $manifestPath)) { throw 'Manifesto do backup ausente.' }
 $entries = @(Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json)
+if ((Test-Path -LiteralPath (Join-Path $backup 'tls/current.pem')) -and -not (@($entries.path) -contains 'tls/current.pem')) {
+    throw 'TLS presente fora do manifesto do backup.'
+}
 foreach ($entry in $entries) {
     $path = [System.IO.Path]::GetFullPath((Join-Path $backup $entry.path))
     if (-not $path.StartsWith($backup + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -43,6 +46,14 @@ function Compose([string[]]$Arguments) {
 Push-Location $root
 try {
     Compose @('config', '--quiet')
+    Compose @('build', 'backend')
+    if (Test-Path -LiteralPath (Join-Path $backup 'tls/current.pem')) {
+        $tlsBundle = (Join-Path $backup 'tls/current.pem').Replace('\','/')
+        Compose @('run', '--rm', '--no-deps', '--user', 'root', '--cap-add', 'CHOWN', '--cap-add', 'FOWNER', '--cap-add', 'DAC_OVERRIDE', '-v', "${tlsBundle}:/backup-tls/current.pem:ro", 'backend', 'python', '-m', 'apps.admin_panel.tls_bootstrap', '--bundle', '/backup-tls/current.pem')
+    } else {
+        Write-Warning 'Backup legado sem TLS: clone receberá autoassinado novo; confiança dos clientes não é preservada.'
+        Compose @('run', '--rm', '--no-deps', '--user', 'root', '--cap-add', 'CHOWN', '--cap-add', 'FOWNER', '--cap-add', 'DAC_OVERRIDE', 'backend', 'python', '-m', 'apps.admin_panel.tls_bootstrap')
+    }
     Compose @('up', '-d', '--wait', 'db', 'redis')
     $dbId = & docker compose -p $project --env-file (Join-Path $backup 'beta.env') -f (Join-Path $root 'compose.beta.yaml') -f $overlay ps -q db
     if (-not $dbId) { throw 'Banco do clone não iniciado.' }

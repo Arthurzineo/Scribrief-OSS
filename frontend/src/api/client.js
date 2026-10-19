@@ -50,7 +50,7 @@ async function parse(response, { silentUnauthorized = false } = {}) {
 }
 
 export async function request(method, path, {
-  json, query, signal, headers = {}, silentUnauthorized = false,
+  json, form, query, signal, headers = {}, silentUnauthorized = false,
 } = {}) {
   const params = new URLSearchParams(Object.entries(query || {}).filter(([, value]) => value != null && value !== ''));
   const suffix = params.size ? `?${params}` : '';
@@ -66,7 +66,7 @@ export async function request(method, path, {
       ...(mutating ? { 'X-CSRFToken': cookie('csrftoken') } : {}),
       ...headers,
     },
-    body: json === undefined ? undefined : JSON.stringify(json),
+    body: form || (json === undefined ? undefined : JSON.stringify(json)),
     signal,
   });
   return parse(response, { silentUnauthorized });

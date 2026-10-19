@@ -9,6 +9,7 @@ secret_dir="$root/deploy/secrets"
 cert_dir="$root/deploy/certs"
 certificate=""
 private_key=""
+legacy_import=0
 skip_admin=0
 
 while (($#)); do
@@ -48,24 +49,31 @@ for name in django_secret database_password redis_password sector_key; do
     echo "Segredo inválido ou link simbólico: $name" >&2; exit 1;
   }
 done
-if [[ -n "$certificate" || -n "$private_key" ]]; then
-  [[ -f "$certificate" && -f "$private_key" ]] || { echo 'Informe certificado e chave TLS existentes.' >&2; exit 1; }
-  cp -- "$certificate" "$cert_dir/localhost.crt"
-  cp -- "$private_key" "$cert_dir/localhost.key"
+if [[ -z "$certificate" && -z "$private_key" && -f "$cert_dir/localhost.crt" && -f "$cert_dir/localhost.key" ]]; then
+  # One-time import for installations made before the dedicated TLS volume.
+  certificate="$cert_dir/localhost.crt"; private_key="$cert_dir/localhost.key"
+  legacy_import=1
 fi
-[[ -s "$cert_dir/localhost.crt" && -s "$cert_dir/localhost.key" ]] || {
-  echo 'Instale certificado e chave TLS confiáveis com --certificate/--private-key.' >&2; exit 1;
-}
-[[ ! -L "$cert_dir/localhost.crt" && ! -L "$cert_dir/localhost.key" ]] || {
-  echo 'Certificado e chave TLS não podem ser links simbólicos.' >&2; exit 1;
-}
-docker run --rm --network none -v "$root/deploy:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy
+if [[ -n "$certificate" || -n "$private_key" ]]; then
+  [[ -f "$certificate" && -f "$private_key" && ! -L "$certificate" && ! -L "$private_key" ]] || { echo 'Informe certificado e chave TLS regulares e existentes.' >&2; exit 1; }
+  certificate="$(realpath -- "$certificate")"; private_key="$(realpath -- "$private_key")"
+fi
+docker run --rm --network none -v "$root/deploy:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy --config-only
 # Local Compose binds keep host mode. Non-root app/Nginx must read the mounted
 # files; the 0700 parent directories deny access to other host users.
-chmod 0644 -- "$secret_dir"/{django_secret,database_password,redis_password,sector_key} \
-  "$cert_dir"/{localhost.crt,localhost.key}
+chmod 0644 -- "$secret_dir"/{django_secret,database_password,redis_password,sector_key}
 compose() { docker compose --env-file "$env_file" -f "$compose_file" "$@"; }
 compose config --quiet
+compose build backend
+tls_args=()
+bootstrap_args=()
+if [[ -n "$certificate" ]]; then
+  tls_args=(-v "$certificate:/source/certificate:ro" -v "$private_key:/source/private-key:ro")
+  bootstrap_args=(--certificate /source/certificate --private-key /source/private-key)
+fi
+if ((legacy_import)); then bootstrap_args+=(--preserve-existing); fi
+compose run --rm --no-deps --user root --cap-add CHOWN --cap-add FOWNER \
+  --cap-add DAC_OVERRIDE "${tls_args[@]}" backend python -m apps.admin_panel.tls_bootstrap "${bootstrap_args[@]}"
 compose up -d --build db redis backend
 compose exec -T backend python manage.py migrate --noinput
 compose exec -T backend python manage.py check

@@ -30,6 +30,9 @@ def verify(root: Path) -> None:
     items = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if not isinstance(items, list):
         items = [items]
+    listed = {item["path"] for item in items}
+    if (root / "tls/current.pem").exists() and "tls/current.pem" not in listed:
+        raise ValueError("TLS presente fora do manifesto")
     for item in items:
         path = (root / item["path"]).resolve()
         if not path.is_relative_to(root.resolve()) or not path.is_file():

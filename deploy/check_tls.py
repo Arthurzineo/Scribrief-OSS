@@ -29,7 +29,7 @@ def private_bind(value: str, label: str) -> None:
         raise ValueError(f"{label} deve ser IPv4 explícito de loopback ou rede privada")
 
 
-def validate(directory: Path) -> None:
+def validate(directory: Path, *, config_only: bool = False) -> None:
     values = config(directory / "beta.env")
     project = values.get("SCRIBRIEF_PROJECT_NAME", "scribrief-beta")
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", project):
@@ -50,6 +50,8 @@ def validate(directory: Path) -> None:
     if values.get("PUBLIC_BIND_IP", "127.0.0.1") == values.get("ADMIN_BIND_IP", "127.0.0.1") and values.get("PUBLIC_HTTPS_PORT", "18574") == values.get("ADMIN_HTTPS_PORT", "18575"):
         raise ValueError("Portas pública e administrativa não podem coincidir no mesmo IP")
 
+    if config_only:
+        return
     cert = directory / "certs" / "localhost.crt"
     key = directory / "certs" / "localhost.key"
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -69,8 +71,11 @@ def validate(directory: Path) -> None:
 
 if __name__ == "__main__":
     try:
-        validate(Path(sys.argv[1]))
+        validate(Path(sys.argv[1]), config_only="--config-only" in sys.argv[2:])
     except (OSError, ValueError, ssl.SSLError, ssl.CertificateError) as exc:
         print(f"Preflight TLS/configuração falhou: {exc}", file=sys.stderr)
         raise SystemExit(1) from None
-    print("Preflight TLS/configuração aprovado (cadeia de confiança deve ser validada no cliente).")
+    if "--config-only" in sys.argv[2:]:
+        print("Preflight de configuração aprovado; par TLS será validado no volume.")
+    else:
+        print("Preflight TLS/configuração aprovado (cadeia de confiança deve ser validada no cliente).")

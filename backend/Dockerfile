@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certi
 
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --require-hashes -r /app/requirements.txt
+RUN groupadd --system --gid 101 tlsread && usermod --append --groups tlsread app
 COPY . /app
 RUN DJANGO_SECRET_KEY=build-only-not-for-runtime python manage.py collectstatic --noinput
 RUN chown -R app:app /app

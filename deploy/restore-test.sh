@@ -22,6 +22,16 @@ secrets:
 EOF
 compose() { "${compose_base[@]}" -f "$overlay" "$@"; }
 compose config --quiet
+compose build backend
+if [[ -f "$backup/tls/current.pem" ]]; then
+  compose run --no-deps --rm --user root --cap-add CHOWN --cap-add FOWNER --cap-add DAC_OVERRIDE \
+    -v "$backup/tls/current.pem:/backup-tls/current.pem:ro" \
+    backend python -m apps.admin_panel.tls_bootstrap --bundle /backup-tls/current.pem
+else
+  echo 'Backup legado sem TLS: clone receberá autoassinado novo; confiança dos clientes não é preservada.' >&2
+  compose run --no-deps --rm --user root --cap-add CHOWN --cap-add FOWNER --cap-add DAC_OVERRIDE \
+    backend python -m apps.admin_panel.tls_bootstrap
+fi
 compose up -d --wait db redis
 db_id="$(compose ps -q db)"
 docker cp "$backup/database.dump" "$db_id:/tmp/restore.dump"

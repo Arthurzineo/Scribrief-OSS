@@ -32,15 +32,18 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao verificar jobs ativos; backup recusado.' }
     Compose @('stop', 'backend', 'worker', 'beat')
     $jobsStopped = $true
-    New-Item -ItemType Directory -Path $backup, (Join-Path $backup 'media'), (Join-Path $backup 'secrets') | Out-Null
+    New-Item -ItemType Directory -Path $backup, (Join-Path $backup 'media'), (Join-Path $backup 'secrets'), (Join-Path $backup 'tls') | Out-Null
     Compose @('exec', '-T', 'db', 'pg_dump', '-Fc', '-U', 'scribrief', '-d', 'scribrief', '-f', '/tmp/scribrief-beta.dump')
     $dbId = & docker compose --env-file $envPath -f $composePath ps -q db
     $workerId = & docker compose --env-file $envPath -f $composePath ps -q --all worker
-    if (-not $dbId -or -not $workerId) { throw 'Contêiner de banco ou worker não encontrado.' }
+    $backendId = & docker compose --env-file $envPath -f $composePath ps -q --all backend
+    if (-not $dbId -or -not $workerId -or -not $backendId) { throw 'Contêiner de banco, backend ou worker não encontrado.' }
     & docker cp "${dbId}:/tmp/scribrief-beta.dump" (Join-Path $backup 'database.dump')
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao copiar dump PostgreSQL.' }
     & docker cp "${workerId}:/app/dados/." (Join-Path $backup 'media')
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao copiar volume de mídia.' }
+    & docker cp "${backendId}:/app/tls/current.pem" (Join-Path $backup 'tls/current.pem')
+    if ($LASTEXITCODE -ne 0) { throw 'Falha ao copiar certificado TLS.' }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'beta.env') -Destination $backup
     Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'secrets') -File |
         Copy-Item -Destination (Join-Path $backup 'secrets')

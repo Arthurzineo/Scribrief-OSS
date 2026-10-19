@@ -66,20 +66,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Certificado exclusivamente sintético para smoke
-        run: |
-          mkdir -p .ci-certs
-          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 \
-            -keyout .ci-certs/localhost.key -out .ci-certs/localhost.crt \
-            -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
-      - name: Instalação isolada sem credenciais OpenAI
-        run: bash deploy/install.sh --skip-admin --certificate .ci-certs/localhost.crt --private-key .ci-certs/localhost.key
+      - name: Instalação isolada com TLS autoassinado e sem credenciais OpenAI
+        run: bash deploy/install.sh --skip-admin
       - name: Permissões dos diretórios sensíveis no host
         run: |
           test "$(stat -c %a deploy/secrets)" = 700
           test "$(stat -c %a deploy/certs)" = 700
           test "$(stat -c %a deploy/secrets/django_secret)" = 644
-          test "$(stat -c %a deploy/certs/localhost.key)" = 644
+          docker compose --env-file deploy/beta.env -f compose.beta.yaml exec -T backend \
+            python -c 'import os,stat; p="/app/tls/current.pem"; assert stat.S_IMODE(os.stat(p).st_mode)==0o640; assert stat.S_IMODE(os.stat("/app/tls").st_mode)==0o750; assert os.stat(p).st_gid==101'
+          openssl s_client -connect 127.0.0.1:18574 -servername 127.0.0.1 </dev/null 2>/dev/null | \
+            openssl x509 -noout -ext subjectAltName | grep -q 'IP Address:127.0.0.1'
       - name: Rede pública, API e admin isolado
         run: |
           test "$(curl -ks -o /dev/null -w '%{http_code}' https://127.0.0.1:18574/api/v1/csrf/)" = 200

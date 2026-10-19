@@ -15,6 +15,7 @@ from .views import (
 from .views.health import AdminHealthView
 from .views.providers import AIProviderCatalogView
 from .views.sector_prompts import SectorPromptDetailView, SectorPromptListView
+from .views.tls import AdminTLSView
 
 router = DefaultRouter()
 router.register("sectors", SectorAdminViewSet, basename="admin-sector")
@@ -25,6 +26,7 @@ router.register("system-events", SystemEventAdminViewSet, basename="admin-system
 router.register("jobs", JobAdminViewSet, basename="admin-job")
 router.register("deletions", PendingDeletionAdminViewSet, basename="admin-deletion")
 urlpatterns = [
+    path("tls/", AdminTLSView.as_view(), name="admin-tls"),
     path("health/", AdminHealthView.as_view(), name="admin-health"),
     path("ai-providers/", AIProviderCatalogView.as_view(), name="admin-ai-providers"),
     path(
