@@ -1,0 +1,9 @@
+<div id="root" data-mvt="1" data-next="{{ next_url }}"><main class="login"><div class="login__card"><div class="login__brand"><h1 class="t-page">Scribrief</h1>
+  <p class="muted">{% if page == 'admin_login' %}Administração — acesso em rede separada.{% else %}Transcrição e ata das suas reuniões.{% endif %}</p></div>
+  {% if error %}<p role="alert">Credenciais inválidas.</p>{% endif %}
+  <form class="login__form" method="post">{% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}">
+    <label for="username">Usuário</label><input id="username" name="username" autocomplete="username" required>
+    <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Entrar</button>
+  </form>
+</div></main></div>

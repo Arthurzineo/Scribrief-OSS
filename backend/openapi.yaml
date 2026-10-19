@@ -1,0 +1,3356 @@
+openapi: 3.0.3
+info:
+  title: Scribrief API
+  version: 1.0.0
+paths:
+  /api/admin/ai-providers/:
+    get:
+      operationId: admin_ai_providers_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/admin/audit/:
+    get:
+      operationId: admin_audit_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditEventList'
+          description: ''
+  /api/admin/audit/{id}/:
+    get:
+      operationId: admin_audit_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este audit event.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEvent'
+          description: ''
+  /api/admin/audit/export/:
+    get:
+      operationId: admin_audit_export_retrieve
+      description: Bounded JSONL export; never exports request bodies, secrets or
+        media.
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEvent'
+          description: ''
+  /api/admin/deletions/:
+    get:
+      operationId: admin_deletions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPendingDeletionList'
+          description: ''
+  /api/admin/deletions/{id}/:
+    get:
+      operationId: admin_deletions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingDeletion'
+          description: ''
+  /api/admin/deletions/{id}/restore/:
+    post:
+      operationId: admin_deletions_restore_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreDeletion'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RestoreDeletion'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RestoreDeletion'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingDeletion'
+          description: ''
+  /api/admin/health/:
+    get:
+      operationId: admin_health_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/admin/jobs/:
+    get:
+      operationId: admin_jobs_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobAdminList'
+          description: ''
+  /api/admin/jobs/{id}/:
+    get:
+      operationId: admin_jobs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este processing job.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAdmin'
+          description: ''
+  /api/admin/jobs/{id}/cancel/:
+    post:
+      operationId: admin_jobs_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este processing job.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobAdmin'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAdmin'
+          description: ''
+  /api/admin/jobs/summary/:
+    get:
+      operationId: admin_jobs_summary_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAdmin'
+          description: ''
+  /api/admin/jobs/worker-health/:
+    get:
+      operationId: admin_jobs_worker_health_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAdmin'
+          description: ''
+  /api/admin/sectors/:
+    get:
+      operationId: admin_sectors_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSectorAdminList'
+          description: ''
+    post:
+      operationId: admin_sectors_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+  /api/admin/sectors/{id}/:
+    get:
+      operationId: admin_sectors_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+    patch:
+      operationId: admin_sectors_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSectorAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSectorAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSectorAdmin'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+    delete:
+      operationId: admin_sectors_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/admin/sectors/{id}/ai-credentials/{provider_id}/:
+    get:
+      operationId: admin_sectors_ai_credentials_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      - in: path
+        name: provider_id
+        schema:
+          type: string
+          pattern: ^[a-z][a-z0-9_-]{1,39}$
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+    post:
+      operationId: admin_sectors_ai_credentials_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      - in: path
+        name: provider_id
+        schema:
+          type: string
+          pattern: ^[a-z][a-z0-9_-]{1,39}$
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+    delete:
+      operationId: admin_sectors_ai_credentials_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      - in: path
+        name: provider_id
+        schema:
+          type: string
+          pattern: ^[a-z][a-z0-9_-]{1,39}$
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/admin/sectors/{id}/members/:
+    get:
+      operationId: admin_sectors_members_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+  /api/admin/sectors/{id}/openai-key/:
+    get:
+      operationId: admin_sectors_openai_key_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+    post:
+      operationId: admin_sectors_openai_key_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SectorAdmin'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+    delete:
+      operationId: admin_sectors_openai_key_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este sector.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/admin/sectors/{sector_id}/ai-prompts/:
+    get:
+      operationId: admin_sectors_ai_prompts_retrieve
+      parameters:
+      - in: path
+        name: sector_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorPromptList'
+          description: ''
+  /api/admin/sectors/{sector_id}/ai-prompts/{kind}/:
+    put:
+      operationId: admin_sectors_ai_prompts_update
+      parameters:
+      - in: path
+        name: kind
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: sector_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectorPromptWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SectorPromptWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SectorPromptWrite'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorPrompt'
+          description: ''
+    delete:
+      operationId: admin_sectors_ai_prompts_destroy
+      parameters:
+      - in: path
+        name: kind
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: sector_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/admin/sectors/choices/:
+    get:
+      operationId: admin_sectors_choices_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectorAdmin'
+          description: ''
+  /api/admin/system-events/:
+    get:
+      operationId: admin_system_events_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSystemEventList'
+          description: ''
+  /api/admin/system-events/{id}/:
+    get:
+      operationId: admin_system_events_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este system event.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemEvent'
+          description: ''
+  /api/admin/usage/:
+    get:
+      operationId: admin_usage_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsageEventList'
+          description: ''
+  /api/admin/usage/{id}/:
+    get:
+      operationId: admin_usage_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este ai usage event.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageEvent'
+          description: ''
+  /api/admin/usage/summary/:
+    get:
+      operationId: admin_usage_summary_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageEvent'
+          description: ''
+  /api/admin/users/:
+    get:
+      operationId: admin_users_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminUserList'
+          description: ''
+    post:
+      operationId: admin_users_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/admin/users/{id}/:
+    get:
+      operationId: admin_users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este usuário.
+        required: true
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+    patch:
+      operationId: admin_users_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este usuário.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUser'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/meetings/:
+    get:
+      operationId: v1_meetings_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMeetingList'
+          description: ''
+    post:
+      operationId: v1_meetings_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/:
+    get:
+      operationId: v1_meetings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    patch:
+      operationId: v1_meetings_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    delete:
+      operationId: v1_meetings_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/meetings/{id}/audio/:
+    get:
+      operationId: v1_meetings_audio_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/correction-suggestions/:
+    get:
+      operationId: v1_meetings_correction_suggestions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrectionResponse'
+          description: ''
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrectionResponse'
+          description: ''
+    post:
+      operationId: v1_meetings_correction_suggestions_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CorrectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CorrectionRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrectionResponse'
+          description: ''
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrectionResponse'
+          description: ''
+  /api/v1/meetings/{id}/mind-map/:
+    get:
+      operationId: v1_meetings_mind_map_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    post:
+      operationId: v1_meetings_mind_map_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/minutes/:
+    get:
+      operationId: v1_meetings_minutes_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    post:
+      operationId: v1_meetings_minutes_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    patch:
+      operationId: v1_meetings_minutes_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/minutes/download/:
+    get:
+      operationId: v1_meetings_minutes_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/minutes/review/:
+    post:
+      operationId: v1_meetings_minutes_review_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MinutesReview'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MinutesReview'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MinutesReview'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MinutesResponse'
+          description: ''
+  /api/v1/meetings/{id}/original/download/:
+    get:
+      operationId: v1_meetings_original_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/progress/:
+    get:
+      operationId: v1_meetings_progress_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionProgress'
+          description: ''
+  /api/v1/meetings/{id}/retry/:
+    post:
+      operationId: v1_meetings_retry_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/sharing/:
+    patch:
+      operationId: v1_meetings_sharing_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSharing'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSharing'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSharing'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/speaker-suggestions/:
+    get:
+      operationId: v1_meetings_speaker_suggestions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      - in: query
+        name: job_id
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSuggestionsResponse'
+          description: ''
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSuggestionsResponse'
+          description: ''
+    post:
+      operationId: v1_meetings_speaker_suggestions_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeakerSuggestionsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SpeakerSuggestionsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SpeakerSuggestionsRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSuggestionsResponse'
+          description: ''
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSuggestionsResponse'
+          description: ''
+  /api/v1/meetings/{id}/speaker-suggestions/dismiss/:
+    post:
+      operationId: v1_meetings_speaker_suggestions_dismiss_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeakerSuggestionsDismiss'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SpeakerSuggestionsDismiss'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SpeakerSuggestionsDismiss'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSuggestionsResponse'
+          description: ''
+  /api/v1/meetings/{id}/speakers/:
+    get:
+      operationId: v1_meetings_speakers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/speakers/{code}/:
+    patch:
+      operationId: v1_meetings_speakers_partial_update
+      parameters:
+      - in: path
+        name: code
+        schema:
+          type: string
+          pattern: ^[A-Z]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/speakers/merge/:
+    post:
+      operationId: v1_meetings_speakers_merge_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/speakers/merge-batch/:
+    post:
+      operationId: v1_meetings_speakers_merge_batch_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Meeting'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/status/:
+    get:
+      operationId: v1_meetings_status_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: ''
+  /api/v1/meetings/{id}/transcription/:
+    get:
+      operationId: v1_meetings_transcription_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    patch:
+      operationId: v1_meetings_transcription_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeeting'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/transcription/download/:
+    get:
+      operationId: v1_meetings_transcription_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/transfer/:
+    post:
+      operationId: v1_meetings_transfer_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transfer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Transfer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Transfer'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/upload/:
+    post:
+      operationId: v1_meetings_upload_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este meeting.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Upload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Upload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: ''
+  /api/v1/csrf/:
+    get:
+      tags:
+      - Sessão
+      operationId: get_csrf_cookie
+      description: Obtém cookie CSRF antes de login e requisições mutáveis.
+      responses:
+        '200':
+          description: Cookie CSRF enviado
+  /api/v1/login/:
+    post:
+      tags:
+      - Sessão
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+              required:
+              - username
+              - password
+      responses:
+        '200':
+          description: Sessão criada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                    required:
+                    - id
+                    - username
+                required:
+                - user
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+  /api/v1/logout/:
+    post:
+      tags:
+      - Sessão
+      operationId: logout
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: Sessão encerrada
+        '401':
+          description: Não autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+  /api/v1/session/:
+    get:
+      tags:
+      - Sessão
+      operationId: get_session
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: Usuário atual
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                    required:
+                    - id
+                    - username
+                required:
+                - user
+        '401':
+          description: Não autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+  /api/v1/sector-members/:
+    get:
+      tags:
+      - Conta
+      operationId: list_sector_members
+      description: Lista membros ativos do mesmo setor para transferência de reunião.
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: Membros ativos do setor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        username:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - id
+                      - username
+                      - name
+                required:
+                - members
+        '401':
+          description: Não autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+  /api/v1/account/:
+    get:
+      tags:
+      - Conta
+      operationId: get_account
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: Dados da conta
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                    required:
+                    - id
+                    - username
+                required:
+                - user
+    patch:
+      tags:
+      - Conta
+      operationId: update_account
+      security:
+      - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Conta atualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                    required:
+                    - id
+                    - username
+                required:
+                - user
+  /api/v1/account/password/:
+    post:
+      tags:
+      - Conta
+      operationId: change_password
+      security:
+      - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+              required:
+              - currentPassword
+              - newPassword
+      responses:
+        '200':
+          description: Senha atualizada
+components:
+  schemas:
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Usuário
+          description: Obrigatório. 150 caracteres ou menos. Letras, números e @/./+/-/_
+            apenas.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          title: Primeiro nome
+          maxLength: 150
+        last_name:
+          type: string
+          title: Último nome
+          maxLength: 150
+        email:
+          title: Endereço de email
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Ativo
+          description: Indica que o usuário será tratado como ativo. Ao invés de excluir
+            contas de usuário, desmarque isso.
+        is_staff:
+          type: boolean
+          readOnly: true
+          title: Membro da equipe
+          description: Indica que usuário consegue acessar este site de administração.
+        sector_id:
+          type: integer
+        sector_name:
+          type: string
+          readOnly: true
+        auth_source:
+          type: string
+          readOnly: true
+        password:
+          type: string
+          writeOnly: true
+        monthly_used_seconds:
+          type: string
+          nullable: true
+          readOnly: true
+        monthly_upload_count:
+          type: integer
+          nullable: true
+          readOnly: true
+      required:
+      - auth_source
+      - id
+      - is_staff
+      - monthly_upload_count
+      - monthly_used_seconds
+      - sector_id
+      - sector_name
+      - username
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        actor:
+          type: integer
+          nullable: true
+        actor_id_snapshot:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        actor_name:
+          type: string
+          readOnly: true
+        subject_user:
+          type: integer
+          nullable: true
+        subject_user_id_snapshot:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        sector:
+          type: integer
+          nullable: true
+        sector_id_snapshot:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        action:
+          type: string
+          maxLength: 48
+        target_id:
+          type: string
+          format: uuid
+          nullable: true
+        target_type:
+          type: string
+          maxLength: 40
+        target_ref:
+          type: string
+          maxLength: 100
+        outcome:
+          type: string
+          maxLength: 24
+        client_ip:
+          type: string
+          nullable: true
+        peer_ip:
+          type: string
+          nullable: true
+        details: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        request_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - action
+      - actor_name
+      - created_at
+      - id
+      - outcome
+    CorrectionRequest:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+      required:
+      - version
+    CorrectionResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        meeting_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          description: processing, ready ou error.
+        sugestoes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CorrectionSuggestion'
+        message:
+          type: string
+      required:
+      - job_id
+      - meeting_id
+      - status
+      - sugestoes
+      - version
+    CorrectionSuggestion:
+      type: object
+      properties:
+        segmento_id:
+          type: integer
+          minimum: 1
+        texto_original:
+          type: string
+        texto_sugerido:
+          type: string
+        motivo:
+          type: string
+      required:
+      - motivo
+      - segmento_id
+      - texto_original
+      - texto_sugerido
+    JobAdmin:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        meeting_id:
+          type: string
+          format: uuid
+        sector:
+          type: integer
+        sector_name:
+          type: string
+          readOnly: true
+        requested_by:
+          type: integer
+          nullable: true
+        username:
+          type: string
+          readOnly: true
+        kind:
+          type: string
+          maxLength: 30
+        status:
+          type: string
+          maxLength: 20
+        stage:
+          type: string
+          maxLength: 40
+        completed_units:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        total_units:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        media_duration_seconds:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+        error_code:
+          type: string
+          maxLength: 60
+        queued_at:
+          type: string
+          format: date-time
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        heartbeat_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        cancel_requested_at:
+          type: string
+          format: date-time
+          nullable: true
+        potentially_stalled:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - kind
+      - meeting_id
+      - potentially_stalled
+      - queued_at
+      - sector
+      - sector_name
+      - username
+    KindEnum:
+      enum:
+      - minutes
+      - mind_map
+      - correction
+      type: string
+      description: |-
+        * `minutes` - minutes
+        * `mind_map` - mind_map
+        * `correction` - correction
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        owner_name:
+          type: string
+          readOnly: true
+        owner_id:
+          type: integer
+          readOnly: true
+        can_edit:
+          type: boolean
+          readOnly: true
+        shared_with_sector:
+          type: boolean
+          readOnly: true
+        access_version:
+          type: integer
+          readOnly: true
+        meeting_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        job_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        error_code:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        speaker_count:
+          type: integer
+          readOnly: true
+        duration_seconds:
+          type: number
+          format: double
+          readOnly: true
+        audio_available:
+          type: boolean
+          readOnly: true
+        transcription_version:
+          type: integer
+          readOnly: true
+        minutes_version:
+          type: integer
+          readOnly: true
+        minutes_stale:
+          type: boolean
+          readOnly: true
+        minutes_stuck:
+          type: boolean
+          readOnly: true
+      required:
+      - access_version
+      - audio_available
+      - can_edit
+      - created_at
+      - duration_seconds
+      - error_code
+      - error_message
+      - id
+      - job_id
+      - minutes_stale
+      - minutes_stuck
+      - minutes_version
+      - owner_id
+      - owner_name
+      - shared_with_sector
+      - speaker_count
+      - status
+      - title
+      - transcription_version
+      - updated_at
+    MinutesResponse:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        resumo_executivo:
+          type: string
+        topicos: {}
+        decisoes:
+          type: array
+          items:
+            type: string
+        tarefas: {}
+        participantes:
+          type: array
+          items:
+            type: string
+        revisor:
+          type: string
+          nullable: true
+        revisado_em:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - decisoes
+      - participantes
+      - resumo_executivo
+      - revisado_em
+      - revisor
+      - tarefas
+      - topicos
+      - version
+    MinutesReview:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+      required:
+      - version
+    PaginatedAdminUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+    PaginatedAuditEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+    PaginatedJobAdminList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobAdmin'
+    PaginatedMeetingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meeting'
+    PaginatedPendingDeletionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingDeletion'
+    PaginatedSectorAdminList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectorAdmin'
+    PaginatedSystemEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemEvent'
+    PaginatedUsageEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageEvent'
+    PatchedAdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Usuário
+          description: Obrigatório. 150 caracteres ou menos. Letras, números e @/./+/-/_
+            apenas.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          title: Primeiro nome
+          maxLength: 150
+        last_name:
+          type: string
+          title: Último nome
+          maxLength: 150
+        email:
+          title: Endereço de email
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Ativo
+          description: Indica que o usuário será tratado como ativo. Ao invés de excluir
+            contas de usuário, desmarque isso.
+        is_staff:
+          type: boolean
+          readOnly: true
+          title: Membro da equipe
+          description: Indica que usuário consegue acessar este site de administração.
+        sector_id:
+          type: integer
+        sector_name:
+          type: string
+          readOnly: true
+        auth_source:
+          type: string
+          readOnly: true
+        password:
+          type: string
+          writeOnly: true
+        monthly_used_seconds:
+          type: string
+          nullable: true
+          readOnly: true
+        monthly_upload_count:
+          type: integer
+          nullable: true
+          readOnly: true
+    PatchedMeeting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        owner_name:
+          type: string
+          readOnly: true
+        owner_id:
+          type: integer
+          readOnly: true
+        can_edit:
+          type: boolean
+          readOnly: true
+        shared_with_sector:
+          type: boolean
+          readOnly: true
+        access_version:
+          type: integer
+          readOnly: true
+        meeting_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        job_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        error_code:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        speaker_count:
+          type: integer
+          readOnly: true
+        duration_seconds:
+          type: number
+          format: double
+          readOnly: true
+        audio_available:
+          type: boolean
+          readOnly: true
+        transcription_version:
+          type: integer
+          readOnly: true
+        minutes_version:
+          type: integer
+          readOnly: true
+        minutes_stale:
+          type: boolean
+          readOnly: true
+        minutes_stuck:
+          type: boolean
+          readOnly: true
+    PatchedSectorAdmin:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        slug:
+          type: string
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        is_active:
+          type: boolean
+        max_upload_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        max_monthly_minutes_per_user:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        member_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedSharing:
+      type: object
+      properties:
+        shared_with_sector:
+          type: boolean
+        access_version:
+          type: integer
+          minimum: 0
+    PendingDeletion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        owner_name:
+          type: string
+          readOnly: true
+        sector_name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        deletion_requested_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        deletion_due_at:
+          type: string
+          format: date-time
+          readOnly: true
+        purge_attempts:
+          type: integer
+          readOnly: true
+        purge_error_code:
+          type: string
+          readOnly: true
+      required:
+      - deletion_due_at
+      - deletion_requested_at
+      - id
+      - owner_name
+      - purge_attempts
+      - purge_error_code
+      - sector_name
+      - status
+      - title
+    RestoreDeletion:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+      required:
+      - current_password
+    SectorAdmin:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        slug:
+          type: string
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        is_active:
+          type: boolean
+        max_upload_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        max_monthly_minutes_per_user:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        member_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - member_count
+      - name
+      - slug
+    SectorPrompt:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        label:
+          type: string
+        text:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        version:
+          type: integer
+          minimum: 0
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - kind
+      - label
+      - source
+      - text
+      - updated_at
+      - version
+    SectorPromptList:
+      type: object
+      properties:
+        sector_id:
+          type: integer
+        prompts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectorPrompt'
+        transcription_note:
+          type: string
+      required:
+      - prompts
+      - sector_id
+      - transcription_note
+    SectorPromptWrite:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 8000
+          minLength: 20
+        expected_version:
+          type: integer
+          minimum: 0
+        current_password:
+          type: string
+          writeOnly: true
+      required:
+      - current_password
+      - expected_version
+      - text
+    SourceEnum:
+      enum:
+      - default
+      - custom
+      type: string
+      description: |-
+        * `default` - default
+        * `custom` - custom
+    SpeakerSuggestionsDismiss:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        codes:
+          type: array
+          items:
+            type: string
+            pattern: ^[A-Z]+$
+          maxItems: 128
+          minItems: 2
+      required:
+      - version
+    SpeakerSuggestionsRequest:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+      required:
+      - version
+    SpeakerSuggestionsResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          nullable: true
+        meeting_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          description: none, processing, ready, dismissed ou error.
+        uses:
+          type: integer
+          maximum: 2
+          minimum: 0
+        remaining:
+          type: integer
+          maximum: 2
+          minimum: 0
+        groups:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        caution:
+          type: boolean
+        sample_times:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: number
+              format: double
+        message:
+          type: string
+      required:
+      - caution
+      - groups
+      - job_id
+      - meeting_id
+      - remaining
+      - sample_times
+      - status
+      - uses
+      - version
+    Status:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        error_code:
+          type: string
+        error_message:
+          type: string
+        minutes_stuck:
+          type: boolean
+      required:
+      - error_code
+      - error_message
+      - job_id
+      - status
+    StatusEnum:
+      enum:
+      - enviado
+      - extraindo_audio
+      - transcrevendo
+      - transcrito
+      - gerando_ata
+      - ata_pronta
+      - erro
+      type: string
+      description: |-
+        * `enviado` - Enviado
+        * `extraindo_audio` - Extraindo áudio
+        * `transcrevendo` - Transcrevendo
+        * `transcrito` - Transcrito
+        * `gerando_ata` - Gerando ata
+        * `ata_pronta` - Ata pronta
+        * `erro` - Erro
+    SystemEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        component:
+          type: string
+          maxLength: 40
+        event_code:
+          type: string
+          maxLength: 64
+        severity:
+          type: string
+          maxLength: 12
+        outcome:
+          type: string
+          maxLength: 20
+        error_code:
+          type: string
+          maxLength: 60
+        stage:
+          type: string
+          maxLength: 40
+        kind:
+          type: string
+          maxLength: 30
+        job_id:
+          type: string
+          format: uuid
+          nullable: true
+        meeting_id:
+          type: string
+          format: uuid
+          nullable: true
+        sector:
+          type: integer
+          nullable: true
+        sector_id_snapshot:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        user:
+          type: integer
+          nullable: true
+        user_id_snapshot:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        user_name:
+          type: string
+          readOnly: true
+        request_id:
+          type: string
+          format: uuid
+          nullable: true
+        client_ip:
+          type: string
+          nullable: true
+        http_status:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+      required:
+      - component
+      - created_at
+      - event_code
+      - id
+      - user_name
+    TranscriptionProgress:
+      type: object
+      properties:
+        stage:
+          type: string
+        completed_chunks:
+          type: integer
+          nullable: true
+        total_chunks:
+          type: integer
+          nullable: true
+        percent:
+          type: integer
+          maximum: 100
+          minimum: 0
+          nullable: true
+      required:
+      - completed_chunks
+      - percent
+      - stage
+      - total_chunks
+    Transfer:
+      type: object
+      properties:
+        target_user_id:
+          type: integer
+          minimum: 1
+        access_version:
+          type: integer
+          minimum: 0
+      required:
+      - access_version
+      - target_user_id
+    Upload:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+        consent_confirmed:
+          type: boolean
+      required:
+      - consent_confirmed
+      - file
+    UsageEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sector:
+          type: integer
+        sector_name:
+          type: string
+          readOnly: true
+        requested_by:
+          type: integer
+          nullable: true
+        username:
+          type: string
+          readOnly: true
+        meeting_id:
+          type: string
+          format: uuid
+        job_id:
+          type: string
+          format: uuid
+          nullable: true
+        operation:
+          type: string
+          maxLength: 40
+        provider_id:
+          type: string
+          maxLength: 40
+        model:
+          type: string
+          maxLength: 100
+        key_version:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        prompt_version:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        prompt_fingerprint:
+          type: string
+          maxLength: 64
+        request_id:
+          type: string
+          maxLength: 100
+        source_label:
+          type: string
+          maxLength: 100
+        outcome:
+          type: string
+          maxLength: 16
+        error_type:
+          type: string
+          maxLength: 80
+        usage: {}
+        usage_basis:
+          type: string
+          readOnly: true
+        estimated_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,8})?$
+          nullable: true
+        estimate_status:
+          type: string
+          maxLength: 20
+        pricing_version:
+          type: string
+          maxLength: 20
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - key_version
+      - meeting_id
+      - model
+      - operation
+      - sector
+      - sector_name
+      - usage_basis
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

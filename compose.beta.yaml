@@ -1,0 +1,153 @@
+name: ${SCRIBRIEF_PROJECT_NAME:-scribrief-beta}
+
+# Distribuição isolada. Não usar os volumes/segredos do Compose de desenvolvimento.
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "${PUBLIC_BIND_IP:-127.0.0.1}:${PUBLIC_HTTPS_PORT:-18574}:8443"
+      - "${ADMIN_BIND_IP:-127.0.0.1}:${ADMIN_HTTPS_PORT:-18575}:9443"
+    volumes:
+      - ./deploy/certs:/etc/nginx/certs:ro
+    depends_on:
+      backend: {condition: service_healthy}
+    networks: [internal, public]
+    read_only: true
+    tmpfs: [/tmp:size=64m]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  backend:
+    build: ./backend
+    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "3600", "--access-logfile", "-"]
+    environment:
+      DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret
+      DATABASE_PASSWORD_FILE: /run/secrets/database_password
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      SECTOR_KEY_ENCRYPTION_KEY_FILE: /run/secrets/sector_key
+      DATABASE_HOST: db
+      DATABASE_NAME: scribrief
+      DATABASE_USER: scribrief
+      MEDIA_ROOT: /app/dados
+      DJANGO_DEBUG: "false"
+      DJANGO_SECURE_COOKIES: "true"
+      DJANGO_ALLOWED_HOSTS: "${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME},${ADMIN_HOSTNAME:-127.0.0.1},127.0.0.1,localhost"
+      FRONTEND_ORIGIN: "https://${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME}:${PUBLIC_HTTPS_PORT:-18574}"
+      MAX_UPLOAD_MB: "${MAX_UPLOAD_MB:-5120}"
+    secrets: [django_secret, database_password, redis_password, sector_key]
+    volumes: [media:/app/dados]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks: [internal]
+    read_only: true
+    tmpfs: [/tmp:size=64m]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=3).read()"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    build: ./backend
+    command: ["celery", "-A", "config", "worker", "-l", "INFO", "--concurrency=2"]
+    environment:
+      DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret
+      DATABASE_PASSWORD_FILE: /run/secrets/database_password
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      SECTOR_KEY_ENCRYPTION_KEY_FILE: /run/secrets/sector_key
+      DATABASE_HOST: db
+      DATABASE_NAME: scribrief
+      DATABASE_USER: scribrief
+      MEDIA_ROOT: /app/dados
+      DJANGO_DEBUG: "false"
+      DJANGO_SECURE_COOKIES: "true"
+      DJANGO_ALLOWED_HOSTS: "${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME},${ADMIN_HOSTNAME:-127.0.0.1},127.0.0.1,localhost"
+      FRONTEND_ORIGIN: "https://${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME}:${PUBLIC_HTTPS_PORT:-18574}"
+      MAX_UPLOAD_MB: "${MAX_UPLOAD_MB:-5120}"
+    secrets: [django_secret, database_password, redis_password, sector_key]
+    volumes: [media:/app/dados]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks: [internal, egress]
+    read_only: true
+    tmpfs: [/tmp:size=64m]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+
+  beat:
+    build: ./backend
+    command: ["celery", "-A", "config", "beat", "-l", "INFO", "--schedule=/tmp/celerybeat-schedule"]
+    environment:
+      DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret
+      DATABASE_PASSWORD_FILE: /run/secrets/database_password
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      DATABASE_HOST: db
+      DATABASE_NAME: scribrief
+      DATABASE_USER: scribrief
+      MEDIA_ROOT: /tmp/media
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: "${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME},127.0.0.1,localhost"
+    secrets: [django_secret, database_password, redis_password]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks: [internal]
+    read_only: true
+    tmpfs: [/tmp:size=64m]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+
+  redis:
+    # Redis wire protocol, but OSI-open-source Valkey rather than Redis 7.4 source-available.
+    image: valkey/valkey:8.1.10-alpine3.24
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$$(cat /run/secrets/redis_password)\""]
+    secrets: [redis_password]
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [internal]
+    security_opt: [no-new-privileges:true]
+
+  db:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: scribrief
+      POSTGRES_USER: scribrief
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    secrets: [database_password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scribrief -d scribrief"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [internal]
+    security_opt: [no-new-privileges:true]
+
+secrets:
+  django_secret: {file: ./deploy/secrets/django_secret}
+  database_password: {file: ./deploy/secrets/database_password}
+  redis_password: {file: ./deploy/secrets/redis_password}
+  sector_key: {file: ./deploy/secrets/sector_key}
+
+volumes:
+  pgdata:
+  media:
+
+networks:
+  internal: {internal: true}
+  public: {}
+  egress: {}

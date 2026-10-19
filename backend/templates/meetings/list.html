@@ -1,0 +1,2 @@
+{% extends "meetings/base.html" %}
+{% block page_content %}<div class="at-list">{% for item in meetings %}<a class="side__item" href="/reunioes/{{ item.id }}/">{{ item.title }}</a>{% empty %}<p>Nenhuma reunião ainda.</p>{% endfor %}</div>{% endblock %}

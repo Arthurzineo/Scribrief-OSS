@@ -1,0 +1,91 @@
+"""Administrative account/sector API; never mounted on the public Nginx listener."""
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
+
+from apps.accounts.models import Sector, UserMembership
+from apps.meetings.models import Meeting
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    sector_id = serializers.PrimaryKeyRelatedField(
+        queryset=Sector.objects.filter(is_active=True), source="membership.sector"
+    )
+    sector_name = serializers.CharField(source="membership.sector.name", read_only=True)
+    password = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
+    auth_source = serializers.CharField(source="membership.auth_source", read_only=True)
+    monthly_used_seconds = serializers.SerializerMethodField()
+    monthly_upload_count = serializers.SerializerMethodField()
+
+    def get_monthly_used_seconds(self, obj) -> str | None:
+        if "monthly_media_usage" not in self.context:
+            return None
+        item = self.context.get("monthly_media_usage", {}).get(obj.pk)
+        return str(item.used_seconds) if item else "0.00"
+
+    def get_monthly_upload_count(self, obj) -> int | None:
+        if "monthly_media_usage" not in self.context:
+            return None
+        item = self.context.get("monthly_media_usage", {}).get(obj.pk)
+        return item.upload_count if item else 0
+
+    class Meta:
+        model = get_user_model()
+        fields = [
+            "id", "username", "first_name", "last_name", "email", "is_active",
+            "is_staff", "sector_id", "sector_name", "auth_source", "password",
+            "monthly_used_seconds", "monthly_upload_count",
+        ]
+        read_only_fields = [
+            "id", "is_staff", "sector_name", "auth_source",
+            "monthly_used_seconds", "monthly_upload_count",
+        ]
+        extra_kwargs = {"username": {"required": True}}
+
+    def validate(self, attrs):
+        password = attrs.get("password")
+        if self.instance is None and not password:
+            raise serializers.ValidationError({"password": "Senha obrigatória."})
+        if password:
+            try:
+                validate_password(password, user=self.instance)
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({"password": exc.messages}) from exc
+        if self.instance is not None:
+            if self.instance.is_staff:
+                raise PermissionDenied("Contas administrativas não são alteradas por esta API.")
+            new_sector = attrs.get("membership", {}).get("sector")
+            if new_sector and new_sector.pk != self.instance.membership.sector_id:
+                if Meeting.objects.filter(owner=self.instance).exists():
+                    raise serializers.ValidationError(
+                        {"sector_id": "Transfira as reuniões antes de mudar o setor."}
+                    )
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        sector = validated_data.pop("membership")["sector"]
+        password = validated_data.pop("password")
+        user = get_user_model()(**validated_data)
+        user.set_password(password)
+        user.save()
+        UserMembership.objects.create(user=user, sector=sector)
+        return user
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        membership = validated_data.pop("membership", None)
+        password = validated_data.pop("password", None)
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        if membership:
+            instance.membership.sector = membership["sector"]
+            instance.membership.save(update_fields=["sector"])
+        return instance

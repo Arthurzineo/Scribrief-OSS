@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="shell">
+  <nav class="side" aria-label="Reuniões">
+    <div class="side__brand"><a class="side__name" href="/">Scribrief</a></div>
+    <a class="at-btn at-btn--primary" href="/reunioes/nova/">Nova reunião</a>
+    <div class="side__meetings"><p class="side__label">Reuniões</p>
+      {% if meetings %}<ul class="side__list">{% for item in meetings %}
+        <li><a class="side__item" href="/reunioes/{{ item.id }}/" title="{{ item.title }}"><span class="side__item-title">{{ item.title }}</span><span class="side__item-meta">{{ item.meeting_date|date:"d/m/Y" }} · {{ item.get_status_display }}</span></a></li>
+      {% endfor %}</ul>{% else %}<p class="side__label">Nenhuma ainda.</p>{% endif %}
+    </div>
+    <div class="side__foot"><a class="side__account" href="/conta/">Conta</a></div>
+  </nav>
+  <div class="main">
+    <div class="topbar"><button type="button" class="topbar__btn" id="mvt-menu-toggle" aria-label="Abrir menu">☰</button><a class="topbar__name" href="/">Scribrief</a></div>
+    <main id="root" data-mvt="1"><div class="page"><h1 class="t-page">{{ title }}</h1>{% block page_content %}{% endblock %}</div></main>
+  </div>
+</div>
+{% endblock %}

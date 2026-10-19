@@ -1,0 +1,16 @@
+.env
+deploy/beta.env
+deploy/secrets/
+deploy/certs/
+*.sqlite3
+*.log
+*.mp3
+*.mp4
+*.wav
+*.dump
+backups/
+media/
+frontend/node_modules/
+frontend/dist/
+backend/.venv/
+__pycache__/
