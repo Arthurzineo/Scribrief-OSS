@@ -1,0 +1,84 @@
+name: Verificação beta
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  segredos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar segredos no histórico completo
+        run: docker run --rm --network none -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.0@sha256:691af3c7c5a48b16f187ce3446d5f194838f91238f27270ed36eef6359a574d9 git --redact --config /repo/.gitleaks.toml /repo
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'uv==0.12.19'
+      - run: uv sync --frozen --python 3.12
+        working-directory: backend
+      - run: uv run pytest -q
+        working-directory: backend
+        env:
+          DJANGO_TESTING: '1'
+      - run: uv run ruff check .
+        working-directory: backend
+      - run: uv run python manage.py spectacular --validate --file openapi.yaml
+        working-directory: backend
+        env:
+          DJANGO_TESTING: '1'
+      - run: uvx pip-audit -r backend/requirements.txt --disable-pip
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: frontend
+
+  instalacao-linux:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Certificado exclusivamente sintético para smoke
+        run: |
+          mkdir -p .ci-certs
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 \
+            -keyout .ci-certs/localhost.key -out .ci-certs/localhost.crt \
+            -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+      - name: Instalação isolada sem credenciais OpenAI
+        run: bash deploy/install.sh --skip-admin --certificate .ci-certs/localhost.crt --private-key .ci-certs/localhost.key
+      - name: Rede pública, API e admin isolado
+        run: |
+          test "$(curl -ks -o /dev/null -w '%{http_code}' https://127.0.0.1:18574/api/v1/csrf/)" = 200
+          test "$(curl -ks -o /dev/null -w '%{http_code}' https://127.0.0.1:18574/admin/)" = 404
+          test "$(curl -ks -o /dev/null -w '%{http_code}' https://127.0.0.1:18575/api/docs/)" = 403
+          docker compose --env-file deploy/beta.env -f compose.beta.yaml ps
+      - name: Diagnóstico em falha
+        if: failure()
+        run: docker compose --env-file deploy/beta.env -f compose.beta.yaml logs --tail=100 || true
+      - name: Limpeza do runner efêmero
+        if: always()
+        run: docker compose --env-file deploy/beta.env -f compose.beta.yaml down -v || true
