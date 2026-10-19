@@ -28,6 +28,7 @@ if [[ ! -f "$env_file" ]]; then
 fi
 umask 077
 mkdir -p -- "$secret_dir" "$cert_dir"
+chmod 0700 -- "$secret_dir" "$cert_dir"
 new_secret() {
   local name="$1" size="$2" padded="$3" value
   if [[ -e "$secret_dir/$name" ]]; then
@@ -42,6 +43,11 @@ new_secret django_secret 48 False
 new_secret database_password 48 False
 new_secret redis_password 48 False
 new_secret sector_key 32 True
+for name in django_secret database_password redis_password sector_key; do
+  [[ -f "$secret_dir/$name" && ! -L "$secret_dir/$name" ]] || {
+    echo "Segredo inválido ou link simbólico: $name" >&2; exit 1;
+  }
+done
 if [[ -n "$certificate" || -n "$private_key" ]]; then
   [[ -f "$certificate" && -f "$private_key" ]] || { echo 'Informe certificado e chave TLS existentes.' >&2; exit 1; }
   cp -- "$certificate" "$cert_dir/localhost.crt"
@@ -50,7 +56,14 @@ fi
 [[ -s "$cert_dir/localhost.crt" && -s "$cert_dir/localhost.key" ]] || {
   echo 'Instale certificado e chave TLS confiáveis com --certificate/--private-key.' >&2; exit 1;
 }
+[[ ! -L "$cert_dir/localhost.crt" && ! -L "$cert_dir/localhost.key" ]] || {
+  echo 'Certificado e chave TLS não podem ser links simbólicos.' >&2; exit 1;
+}
 docker run --rm --network none -v "$root/deploy:/deploy:ro" python:3.12-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 python /deploy/check_tls.py /deploy
+# Local Compose binds keep host mode. Non-root app/Nginx must read the mounted
+# files; the 0700 parent directories deny access to other host users.
+chmod 0644 -- "$secret_dir"/{django_secret,database_password,redis_password,sector_key} \
+  "$cert_dir"/{localhost.crt,localhost.key}
 compose() { docker compose --env-file "$env_file" -f "$compose_file" "$@"; }
 compose config --quiet
 compose up -d --build db redis backend

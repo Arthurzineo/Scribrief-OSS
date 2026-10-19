@@ -74,6 +74,12 @@ jobs:
             -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
       - name: Instalação isolada sem credenciais OpenAI
         run: bash deploy/install.sh --skip-admin --certificate .ci-certs/localhost.crt --private-key .ci-certs/localhost.key
+      - name: Permissões dos diretórios sensíveis no host
+        run: |
+          test "$(stat -c %a deploy/secrets)" = 700
+          test "$(stat -c %a deploy/certs)" = 700
+          test "$(stat -c %a deploy/secrets/django_secret)" = 644
+          test "$(stat -c %a deploy/certs/localhost.key)" = 644
       - name: Rede pública, API e admin isolado
         run: |
           test "$(curl -ks -o /dev/null -w '%{http_code}' https://127.0.0.1:18574/api/v1/csrf/)" = 200

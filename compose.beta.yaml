@@ -7,8 +7,10 @@ services:
     ports:
       - "${PUBLIC_BIND_IP:-127.0.0.1}:${PUBLIC_HTTPS_PORT:-18574}:8443"
       - "${ADMIN_BIND_IP:-127.0.0.1}:${ADMIN_HTTPS_PORT:-18575}:9443"
+    # Bind only the two TLS files; never mount the host's private cert directory.
     volumes:
-      - ./deploy/certs:/etc/nginx/certs:ro
+      - ./deploy/certs/localhost.crt:/etc/nginx/certs/localhost.crt:ro
+      - ./deploy/certs/localhost.key:/etc/nginx/certs/localhost.key:ro
     depends_on:
       backend: {condition: service_healthy}
     networks: [internal, public]
