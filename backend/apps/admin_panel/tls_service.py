@@ -2,6 +2,7 @@
 
 import ipaddress
 import os
+import ssl
 import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -131,8 +132,14 @@ def install_pair(certificate_pem, key_pem, names, root=None):
         os.chmod(name, 0o640)
         # Docker Desktop may clear setgid on named-volume directories. Assign
         # the Nginx reader group explicitly; backend app belongs to it.
-        if os.name == "posix":
-            os.chown(name, -1, 101)
+        reader_gid = os.environ.get("TLS_READER_GID")
+        if os.name == "posix" and reader_gid:
+            os.chown(name, -1, int(reader_gid))
+        try:
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(name, name)
+        except (OSError, ssl.SSLError, ValueError):
+            raise ValueError("Certificado/cadeia PEM rejeitado pelo motor TLS.") from None
         os.replace(name, target)
     finally:
         if os.path.exists(name):

@@ -31,7 +31,7 @@ jobs:
         working-directory: backend
         env:
           DJANGO_TESTING: '1'
-      - run: uv run pytest -q
+      - run: uv run pytest -q --tb=short
         working-directory: backend
         env:
           DJANGO_TESTING: '1'

@@ -21,6 +21,10 @@ def test_self_signed_san_and_atomic_pair(tmp_path, monkeypatch):
     tls_service.install_pair(cert + cert, key, names, tmp_path)
     assert tls_service.current_status(tmp_path)["valid"] is True
     original = (tmp_path / "current.pem").read_bytes()
+    malformed_chain = cert + b"-----BEGIN CERTIFICATE-----\nbad\n-----END CERTIFICATE-----\n"
+    with pytest.raises(ValueError):
+        tls_service.install_pair(malformed_chain, key, names, tmp_path)
+    assert (tmp_path / "current.pem").read_bytes() == original
     other_cert, other_key = tls_service.generate_self_signed(names)
     with pytest.raises(ValueError, match="não corresponde"):
         tls_service.install_pair(other_cert, key, names, tmp_path)
