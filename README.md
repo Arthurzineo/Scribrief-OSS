@@ -2,7 +2,7 @@
 
 Scribrief é uma aplicação web para transcrever reuniões autorizadas, revisar falas, gerar atas por tópicos e visualizar mapas mentais. Usa Django, React/Vite, Celery, PostgreSQL, Valkey (protocolo Redis), ffmpeg e um provedor externo de IA. **Este código é beta, exclusivamente para instalação em rede interna; não o exponha à Internet nem o considere homologado para produção.**
 
-O código original deste pacote candidato está sob **GNU AGPL-3.0-only** (`LICENSE`), sujeita à confirmação dos direitos de redistribuição de todos os recursos antes da publicação aberta. Uso comercial é permitido. Preserve avisos de autoria/licença e disponibilize o código-fonte correspondente aos usuários que interagirem pela rede com uma versão modificada, nos termos da seção 13. A licença não transfere direitos sobre marcas e não torna automaticamente aberto software independente da instalação. Informações de terceiros em `THIRD_PARTY_NOTICES.md`.
+O código original deste pacote candidato está sob **GNU AGPL-3.0-only** (`LICENSE`), sujeita à confirmação dos direitos de redistribuição de todos os recursos antes da publicação aberta. **Copyright (C) 2026 Arthur Gonçalves e contribuidores, na medida dos direitos que detenham.** Uso comercial é permitido. Preserve avisos de autoria/licença e disponibilize o código-fonte correspondente aos usuários que interagirem pela rede com uma versão modificada, nos termos da seção 13. A licença não transfere direitos sobre marcas e não torna automaticamente aberto software independente da instalação. Informações de terceiros em `THIRD_PARTY_NOTICES.md`.
 
 ## Beta interno com Docker
 
