@@ -111,9 +111,11 @@ def password_view(request):
             details={"reason": "invalid_new_password"},
         )
         return _error("invalid_password", " ".join(exc.messages), 400)
-    request.user.set_password(new)
-    request.user.save(update_fields=["password"])
+    with transaction.atomic():
+        request.user.set_password(new)
+        request.user.save(update_fields=["password"])
+        UserMembership.objects.filter(user_id=request.user.pk).update(must_change_password=False)
+        record_audit(request.user, "password_changed", request=request,
+                     subject_user=request.user, target_type="user", target_ref=request.user.pk)
     update_session_auth_hash(request, request.user)
-    record_audit(request.user, "password_changed", request=request,
-                 subject_user=request.user, target_type="user", target_ref=request.user.pk)
     return JsonResponse({"ok": True})

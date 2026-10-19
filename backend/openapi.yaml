@@ -1921,9 +1921,15 @@ paths:
                       email:
                         type: string
                         format: email
+                      is_staff:
+                        type: boolean
+                      must_change_password:
+                        type: boolean
                     required:
                     - id
                     - username
+                    - is_staff
+                    - must_change_password
                 required:
                 - user
         '400':
@@ -2020,9 +2026,15 @@ paths:
                       email:
                         type: string
                         format: email
+                      is_staff:
+                        type: boolean
+                      must_change_password:
+                        type: boolean
                     required:
                     - id
                     - username
+                    - is_staff
+                    - must_change_password
                 required:
                 - user
         '401':
@@ -2123,9 +2135,15 @@ paths:
                       email:
                         type: string
                         format: email
+                      is_staff:
+                        type: boolean
+                      must_change_password:
+                        type: boolean
                     required:
                     - id
                     - username
+                    - is_staff
+                    - must_change_password
                 required:
                 - user
     patch:
@@ -2165,9 +2183,15 @@ paths:
                       email:
                         type: string
                         format: email
+                      is_staff:
+                        type: boolean
+                      must_change_password:
+                        type: boolean
                     required:
                     - id
                     - username
+                    - is_staff
+                    - must_change_password
                 required:
                 - user
   /api/v1/account/password/:
@@ -2195,7 +2219,26 @@ paths:
               - newPassword
       responses:
         '200':
-          description: Senha atualizada
+          description: Senha atualizada; libera o primeiro acesso quando obrigatório
+        '400':
+          description: Senha atual incorreta ou nova senha inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                    - code
+                    - message
+                required:
+                - error
 components:
   schemas:
     AdminUser:

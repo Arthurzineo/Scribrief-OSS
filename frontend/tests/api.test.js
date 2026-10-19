@@ -3,6 +3,19 @@ import test from 'node:test';
 import { request } from '../src/api/client.js';
 import { isProcessing, states, toMeeting, toMeetingSummary } from '../src/api/mappers.js';
 import { minutesToTxt } from '../src/shared/lib/export.js';
+import { getMe } from '../src/api/auth.js';
+
+test('session keeps the mandatory initial password-change flag', async () => {
+  globalThis.document = { cookie: '' };
+  globalThis.window = new EventTarget();
+  globalThis.fetch = async () => ({
+    ok: true, status: 200,
+    text: async () => '{"user":{"username":"ADMIN","is_staff":true,"must_change_password":true}}',
+  });
+  assert.deepEqual(await getMe(), {
+    name: 'ADMIN', email: '', is_staff: true, must_change_password: true,
+  });
+});
 
 test('maps backend processing/minutes states without treating minutes failure as transcription failure', () => {
   assert.deepEqual(states({ status: 'extraindo_audio' }), {

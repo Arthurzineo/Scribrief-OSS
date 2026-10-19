@@ -4,6 +4,7 @@
 
 - **Nginx/frontend:** único serviço com portas publicadas; HTTPS público e HTTPS administrativo em portas distintas. Bloqueia `/admin`, `/api/admin`, Swagger e schema na porta pública.
 - **Django/backend:** autenticação, autorização por reunião/setor, HTML MVT, API, trilha de auditoria e administração. Só recebe conexões da rede interna Docker.
+- **Bootstrap de identidade:** `bootstrap_admin` cria `ADMIN`/`ADMIN123` apenas quando não há usuários, com hash de senha e `UserMembership.must_change_password=true`; não cria `demo` nem redefine credenciais existentes. Os dois binds permanecem em loopback até a troca. Middleware nega páginas/APIs fora da sessão e da alteração de senha; React mostra exclusivamente o formulário de primeiro acesso. O instalador interrompe antes de subir frontend/worker se a conta inicial pendente coexistir com bind não local.
 - **Celery worker:** ffmpeg, transcrição, geração de ata/mapa, purga e tarefas assíncronas. Único componente aplicativo com saída ao provedor externo de IA.
 - **Celery Beat:** agendamento de tarefas periódicas, sem saída ao provedor externo.
 - **PostgreSQL:** usuários, reuniões, segmentos, atas, empregos, estado e auditoria; nenhum áudio/vídeo BLOB.

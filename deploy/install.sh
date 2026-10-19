@@ -77,10 +77,9 @@ compose run --rm --no-deps --user root --cap-add CHOWN --cap-add FOWNER \
 compose up -d --build db redis backend
 compose exec -T backend python manage.py migrate --noinput
 compose exec -T backend python manage.py check
+admin_args=()
+if ((skip_admin)); then admin_args=(--skip-create); fi
+compose exec -T backend python manage.py bootstrap_admin "${admin_args[@]}"
 compose up -d --build worker beat frontend
 compose ps
-if ((skip_admin == 0)); then
-  echo 'Crie a primeira conta administrativa sem senha padrão:'
-  compose exec backend python manage.py createsuperuser
-fi
-echo 'Instalação beta concluída; teste TLS, firewall, outra estação e backup/restore antes de dados reais.'
+echo 'Instalação beta concluída. Na instalação nova, entre localmente como ADMIN e troque ADMIN123 imediatamente; nenhum demo é criado. Teste TLS, firewall e backup/restore antes de dados reais.'

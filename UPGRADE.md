@@ -12,7 +12,7 @@
 ## Aplicar
 
 1. Troque para o pacote aprovado, mantendo `deploy/beta.env`, `deploy/secrets/`, os volumes originais (inclusive `tls`) e, se presentes, `deploy/certs/` legados. Nunca copie segredos para Git ou para uma issue.
-2. Execute o instalador correspondente **sem** certificado/chave para preservar o volume TLS atual, com `SkipAdmin`/`--skip-admin`. Ele valida configuração/Compose, constrói, sobe DB/Valkey/backend, migra e checa Django, depois sobe worker/Beat/frontend. Certificados explícitos substituem o ativo; prefira o painel admin para rotação. **Migrações não são revertidas automaticamente.**
+2. Execute o instalador correspondente **sem** certificado/chave para preservar o volume TLS atual, com `SkipAdmin`/`--skip-admin`. Ele valida configuração/Compose, constrói, sobe DB/Valkey/backend, migra e checa Django, executa a verificação da conta inicial sem criá-la, depois sobe worker/Beat/frontend. Não há redefinição de senhas nem criação de `demo`; se uma conta inicial ainda exige troca de senha, binds fora de loopback são recusados. Certificados explícitos substituem o ativo; prefira o painel admin para rotação. **Migrações não são revertidas automaticamente.**
 3. Confira `docker compose --env-file deploy/beta.env -f compose.beta.yaml ps`; login e CSRF na porta pública; 404 para `/admin/` público; painel admin apenas pela rede de gestão; upload/consulta com mídia **sintética**; logs de erro e Health. Confirme que nenhuma porta de banco/Valkey/backend está publicada.
 4. Monitore filas, disco, erros, custo e backup da primeira janela. Atualize o registro operacional com versão, horário, operador e resultado.
 

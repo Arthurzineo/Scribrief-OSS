@@ -11,6 +11,7 @@ import AdminDeletionPanel from './AdminDeletionPanel.jsx';
 import AdminHealthPanel from './AdminHealthPanel.jsx';
 import SectorPromptPanel from './SectorPromptPanel.jsx';
 import AdminTlsPanel from './AdminTlsPanel.jsx';
+import InitialPasswordPanel from './InitialPasswordPanel.jsx';
 
 const emptySector = { name: '', slug: '', is_active: true, max_upload_minutes: '', max_monthly_minutes_per_user: '' };
 const emptyUser = { username: '', first_name: '', last_name: '', email: '', sector_id: '', password: '' };
@@ -68,10 +69,11 @@ export default function AdminPage() {
     } catch (err) { setError(err.message); }
   }
 
-  useEffect(() => { if (user?.is_staff) refresh().catch((err) => setError(err.message)); }, [refresh, user?.is_staff]);
+  useEffect(() => { if (user?.is_staff && !user.must_change_password) refresh().catch((err) => setError(err.message)); }, [refresh, user?.is_staff, user?.must_change_password]);
   if (!ready) return null;
   if (!user) return <PageRedirect to="/admin/login/" />;
   if (!user.is_staff) return <main className="page"><h1 className="t-page">Acesso negado</h1><p>Conta sem permissão administrativa.</p></main>;
+  if (user.must_change_password) return <InitialPasswordPanel />;
 
   async function saveSector(event) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('');

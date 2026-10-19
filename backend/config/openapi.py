@@ -24,8 +24,10 @@ USER = {
                 "username": {"type": "string"},
                 "name": {"type": "string"},
                 "email": {"type": "string", "format": "email"},
+                "is_staff": {"type": "boolean"},
+                "must_change_password": {"type": "boolean"},
             },
-            "required": ["id", "username"],
+            "required": ["id", "username", "is_staff", "must_change_password"],
         }
     },
     "required": ["user"],
@@ -198,7 +200,15 @@ AUTH_PATHS = {
                     }
                 },
             },
-            "responses": {"200": {"description": "Senha atualizada"}},
+            "responses": {
+                "200": {
+                    "description": "Senha atualizada; libera o primeiro acesso quando obrigatório"
+                },
+                "400": {
+                    "description": "Senha atual incorreta ou nova senha inválida",
+                    "content": {"application/json": {"schema": ERROR}},
+                },
+            },
         }
     },
 }

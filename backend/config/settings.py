@@ -58,6 +58,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "config.middleware.SessionVersionMiddleware",
     "apps.audit.middleware.MutationAuditMiddleware",
+    "config.middleware.InitialPasswordMiddleware",
     "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",

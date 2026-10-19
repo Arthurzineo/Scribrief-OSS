@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
+from django.http import JsonResponse
+from django.shortcuts import redirect
 
 
 class SessionVersionMiddleware:
@@ -18,6 +20,34 @@ class SessionVersionMiddleware:
             if version is None or request.session.get("account_session_version", 0) != version:
                 request.session.flush()
                 request.user = AnonymousUser()
+        return self.get_response(request)
+
+
+class InitialPasswordMiddleware:
+    """The bootstrap session may only rotate its credential or end the session."""
+
+    ALLOWED = {
+        "/admin/", "/admin/login/", "/api/v1/csrf/", "/api/v1/session/",
+        "/api/v1/account/password/", "/api/v1/logout/",
+    }
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = request.user
+        if user.is_authenticated and request.path not in self.ALLOWED:
+            from apps.accounts.models import UserMembership
+
+            if UserMembership.objects.filter(
+                user_id=user.pk, must_change_password=True,
+            ).exists():
+                if request.path.startswith("/api/"):
+                    return JsonResponse({"error": {
+                        "code": "password_change_required",
+                        "message": "Troque a senha inicial antes de continuar.",
+                    }}, status=403)
+                return redirect("mvt-admin")
         return self.get_response(request)
 
 

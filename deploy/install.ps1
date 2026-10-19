@@ -86,11 +86,10 @@ try {
     Invoke-Compose @('up', '-d', '--build', 'db', 'redis', 'backend')
     Invoke-Compose @('exec', '-T', 'backend', 'python', 'manage.py', 'migrate', '--noinput')
     Invoke-Compose @('exec', '-T', 'backend', 'python', 'manage.py', 'check')
+    $adminArgs = @('exec', '-T', 'backend', 'python', 'manage.py', 'bootstrap_admin')
+    if ($SkipAdmin) { $adminArgs += '--skip-create' }
+    Invoke-Compose $adminArgs
     Invoke-Compose @('up', '-d', '--build', 'worker', 'beat', 'frontend')
     Invoke-Compose @('ps')
-    if (-not $SkipAdmin) {
-        Write-Output 'Crie a primeira conta administrativa sem senha padrão:'
-        Invoke-Compose @('exec', 'backend', 'python', 'manage.py', 'createsuperuser')
-    }
-    Write-Output 'Instalação beta concluída. Antes de receber dados reais, teste acesso de outra estação, TLS, firewall e backup/restore.'
+    Write-Output 'Instalação beta concluída. Na instalação nova, entre localmente como ADMIN e troque ADMIN123 imediatamente; nenhum demo é criado. Antes de dados reais, teste TLS, firewall e backup/restore.'
 } finally { Pop-Location }

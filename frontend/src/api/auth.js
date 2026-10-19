@@ -2,7 +2,7 @@ import { request } from './client.js';
 
 const toUser = (response) => {
   const user = response?.user ?? response;
-  return user ? { name: user.name || user.username || '', email: user.email || '', is_staff: Boolean(user.is_staff) } : null;
+  return user ? { name: user.name || user.username || '', email: user.email || '', is_staff: Boolean(user.is_staff), must_change_password: Boolean(user.must_change_password) } : null;
 };
 
 export async function login(username, password) {

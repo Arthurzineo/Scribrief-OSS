@@ -67,7 +67,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Instalação isolada com TLS autoassinado e sem credenciais OpenAI
-        run: bash deploy/install.sh --skip-admin
+        run: bash deploy/install.sh
+      - name: Conta inicial restrita e nenhuma conta demo
+        run: |
+          docker compose --env-file deploy/beta.env -f compose.beta.yaml exec -T backend python -c '
+          import os, django
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+          django.setup()
+          from django.contrib.auth import get_user_model
+          User = get_user_model()
+          admin = User.objects.get(username="ADMIN")
+          assert User.objects.count() == 1
+          assert admin.is_superuser and admin.is_staff
+          assert admin.check_password("ADMIN123") and admin.membership.must_change_password
+          assert not User.objects.filter(username="demo").exists()
+          '
       - name: Permissões dos diretórios sensíveis no host
         run: |
           test "$(stat -c %a deploy/secrets)" = 700

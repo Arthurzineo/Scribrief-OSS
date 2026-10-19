@@ -43,6 +43,8 @@ services:
       MAX_UPLOAD_MB: "${MAX_UPLOAD_MB:-5120}"
       PUBLIC_HOSTNAME: "${PUBLIC_HOSTNAME:?configure PUBLIC_HOSTNAME}"
       ADMIN_HOSTNAME: "${ADMIN_HOSTNAME:-127.0.0.1}"
+      PUBLIC_BIND_IP: "${PUBLIC_BIND_IP:-127.0.0.1}"
+      ADMIN_BIND_IP: "${ADMIN_BIND_IP:-127.0.0.1}"
       TLS_ROOT: /app/tls
       TLS_READER_GID: "101"
     secrets: [django_secret, database_password, redis_password, sector_key]
