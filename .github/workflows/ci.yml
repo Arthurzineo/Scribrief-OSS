@@ -82,6 +82,19 @@ jobs:
           assert admin.check_password("ADMIN123") and admin.membership.must_change_password
           assert not User.objects.filter(username="demo").exists()
           '
+      - name: Primeiro login real exige troca e libera painel somente depois
+        run: |
+          jar="$(mktemp)"
+          trap 'rm -f "$jar"' EXIT
+          base='https://127.0.0.1:18575'
+          curl -ksS -c "$jar" "$base/api/v1/csrf/" >/dev/null
+          csrf="$(awk '$6 == "csrftoken" {print $7}' "$jar")"
+          test -n "$csrf"
+          test "$(curl -ksS -b "$jar" -c "$jar" -H "Origin: $base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"username":"ADMIN","password":"ADMIN123"}' -o /dev/null -w '%{http_code}' "$base/api/v1/login/")" = 200
+          test "$(curl -ksS -b "$jar" -o /dev/null -w '%{http_code}' "$base/api/admin/sectors/")" = 403
+          csrf="$(awk '$6 == "csrftoken" {print $7}' "$jar")"
+          test "$(curl -ksS -b "$jar" -c "$jar" -H "Origin: $base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"currentPassword":"ADMIN123","newPassword":"Temporary-CI-Strong-Password-456"}' -o /dev/null -w '%{http_code}' "$base/api/v1/account/password/")" = 200
+          test "$(curl -ksS -b "$jar" -o /dev/null -w '%{http_code}' "$base/api/admin/sectors/")" = 200
       - name: Permissões dos diretórios sensíveis no host
         run: |
           test "$(stat -c %a deploy/secrets)" = 700

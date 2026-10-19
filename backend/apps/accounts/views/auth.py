@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.accounts.initial_access import initial_login_forbidden, unsafe_bootstrap_bind
 from apps.audit.change_tracking import fingerprint
 from apps.audit.models import record_audit
 
@@ -33,12 +34,18 @@ def login_view(request):
     username, password = payload.get("username"), payload.get("password")
     if not isinstance(username, str) or not isinstance(password, str) or len(username) > 150:
         return _error("invalid_data", "Credenciais inválidas.", 400)
+    if initial_login_forbidden(username):
+        record_audit(None, "login", outcome="failed", request=request,
+                     details={"username_fingerprint": fingerprint(username.casefold())})
+        return _error("invalid_credentials", "Credenciais inválidas.", 401)
     user = authenticate(request, username=username, password=password)
     if user is None:
         record_audit(None, "login", outcome="failed", request=request,
                      details={"username_fingerprint": fingerprint(username.casefold())})
         return _error("invalid_credentials", "Credenciais inválidas.", 401)
-    if not _active_member(user):
+    if not _active_member(user) or (
+        user.membership.must_change_password and unsafe_bootstrap_bind()
+    ):
         record_audit(None, "login", outcome="failed", request=request,
                      details={"username_fingerprint": fingerprint(username.casefold())})
         return _error("invalid_credentials", "Credenciais inválidas.", 401)

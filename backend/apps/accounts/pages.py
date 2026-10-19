@@ -9,6 +9,7 @@ from apps.audit.change_tracking import fingerprint
 from apps.audit.models import record_audit
 from config.page_support import member_page, render_page
 
+from .initial_access import initial_login_forbidden, unsafe_bootstrap_bind
 from .views import _active_member
 
 
@@ -28,9 +29,10 @@ def login_form(request, *, admin=False):
         username = request.POST.get("username", "")
         password = request.POST.get("password", "")
         user = None
-        if len(username) <= 150 and username and password:
+        if len(username) <= 150 and username and password and not initial_login_forbidden(username):
             user = authenticate(request, username=username, password=password)
-        if user is not None and _active_member(user) and (not admin or user.is_staff):
+        if (user is not None and _active_member(user) and (not admin or user.is_staff)
+                and not (user.membership.must_change_password and unsafe_bootstrap_bind())):
             login(request, user)
             record_audit(user, "login", request=request, subject_user=user,
                          target_type="user", target_ref=user.pk)

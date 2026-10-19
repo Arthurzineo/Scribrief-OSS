@@ -108,6 +108,36 @@ def test_pending_bootstrap_blocks_reexposure_on_lan(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_direct_compose_exposure_cannot_use_known_password(client, monkeypatch):
+    monkeypatch.setenv("PUBLIC_BIND_IP", "127.0.0.1")
+    monkeypatch.setenv("ADMIN_BIND_IP", "127.0.0.1")
+    call_command("bootstrap_admin")
+    monkeypatch.setenv("PUBLIC_BIND_IP", "192.168.1.10")
+    assert client.post("/api/v1/login/", json.dumps({
+        "username": "ADMIN", "password": "ADMIN123",
+    }), content_type="application/json").status_code == 401
+    assert client.post("/admin/login/", {
+        "username": "ADMIN", "password": "ADMIN123",
+    }).status_code == 200
+    admin = get_user_model().objects.get(username="ADMIN")
+    client.force_login(admin)
+    assert client.get("/api/v1/session/").status_code == 403
+    assert client.post("/api/v1/account/password/", json.dumps({
+        "currentPassword": "ADMIN123", "newPassword": "Different-Strong-Password-456",
+    }), content_type="application/json").status_code == 403
+    assert admin.membership.must_change_password
+    monkeypatch.setenv("PUBLIC_BIND_IP", "127.0.0.1")
+    assert client.post("/api/v1/account/password/", json.dumps({
+        "currentPassword": "ADMIN123", "newPassword": "Different-Strong-Password-456",
+    }), content_type="application/json").status_code == 200
+    monkeypatch.setenv("PUBLIC_BIND_IP", "192.168.1.10")
+    assert client.post("/api/v1/logout/").status_code == 200
+    assert client.post("/api/v1/login/", json.dumps({
+        "username": "ADMIN", "password": "Different-Strong-Password-456",
+    }), content_type="application/json").status_code == 200
+
+
+@pytest.mark.django_db
 def test_bootstrap_skip_create_does_not_seed_demo(monkeypatch):
     monkeypatch.setenv("PUBLIC_BIND_IP", "127.0.0.1")
     monkeypatch.setenv("ADMIN_BIND_IP", "127.0.0.1")

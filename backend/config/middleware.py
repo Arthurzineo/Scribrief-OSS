@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 
 
@@ -36,12 +36,23 @@ class InitialPasswordMiddleware:
 
     def __call__(self, request):
         user = request.user
-        if user.is_authenticated and request.path not in self.ALLOWED:
+        if user.is_authenticated:
+            from apps.accounts.initial_access import unsafe_bootstrap_bind
             from apps.accounts.models import UserMembership
 
-            if UserMembership.objects.filter(
+            bind_violation = unsafe_bootstrap_bind()
+            check_needed = bind_violation or request.path not in self.ALLOWED
+            pending = check_needed and UserMembership.objects.filter(
                 user_id=user.pk, must_change_password=True,
-            ).exists():
+            ).exists()
+            if pending:
+                if bind_violation:
+                    if request.path.startswith("/api/"):
+                        return JsonResponse({"error": {
+                            "code": "initial_account_local_only",
+                            "message": "Primeiro acesso permitido somente com portas em loopback.",
+                        }}, status=403)
+                    return HttpResponseForbidden("Primeiro acesso permitido somente em loopback.")
                 if request.path.startswith("/api/"):
                     return JsonResponse({"error": {
                         "code": "password_change_required",
