@@ -26,7 +26,6 @@ def sector_members_view(request):
         sector_id=request.user.membership.sector_id,
         sector__is_active=True,
         user__is_active=True,
-        auth_source=UserMembership.AuthSource.LOCAL,
     ).select_related("user").order_by("user__username")
     return JsonResponse({"members": [
         {"id": item.user_id, "username": item.user.username,

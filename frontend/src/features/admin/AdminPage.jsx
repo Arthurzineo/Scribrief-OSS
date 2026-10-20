@@ -176,7 +176,7 @@ export default function AdminPage() {
     <div><strong>Scribrief</strong><span>Administração</span></div>
     <div className="admin-head__right"><span>{user.name}</span><Button onClick={() => logout().finally(() => { window.location.href = '/admin/login'; })}>Sair</Button></div>
   </header><main className="page">
-    <div className="head"><div><h1 className="t-page">Administração</h1><p className="muted">Setores e contas locais. LDAP será integrado posteriormente.</p></div></div>
+    <div className="head"><div><h1 className="t-page">Administração</h1><p className="muted">Gerencie setores, contas locais e configurações de IA.</p></div></div>
     <div className="at-tabs" role="tablist" aria-label="Áreas administrativas">
       <button className={`at-tab ${tab === 'sectors' ? 'at-tab--active' : ''}`} role="tab" aria-selected={tab === 'sectors'} onClick={() => setTab('sectors')}>Setores</button>
       <button className={`at-tab ${tab === 'ai' ? 'at-tab--active' : ''}`} role="tab" aria-selected={tab === 'ai'} onClick={() => setTab('ai')}>IA por setor</button>

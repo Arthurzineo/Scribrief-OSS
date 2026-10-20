@@ -23,10 +23,7 @@ def _active_member(user):
     if not user.is_authenticated or not user.is_active:
         return False
     try:
-        return (
-            user.membership.auth_source == "local"
-            and user.membership.sector.is_active
-        )
+        return user.membership.sector.is_active
     except ObjectDoesNotExist:
         return False
 

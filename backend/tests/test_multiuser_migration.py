@@ -9,9 +9,10 @@ from django.db.migrations.executor import MigrationExecutor
 def test_legacy_meeting_backfill_preserves_file_paths():
     before = ("meetings", "0012_backfill_speaker_analysis_uses")
     after = ("meetings", "0015_alter_meeting_created_by_alter_meeting_sector")
+    accounts_at_backfill = ("accounts", "0001_initial")
     executor = MigrationExecutor(connection)
-    executor.migrate([before])
-    old = executor.loader.project_state([before]).apps
+    executor.migrate([before, accounts_at_backfill])
+    old = executor.loader.project_state([before, accounts_at_backfill]).apps
     User = old.get_model("auth", "User")
     Meeting = old.get_model("meetings", "Meeting")
     owner = User.objects.create(username="legacy-migration-test")
@@ -23,8 +24,8 @@ def test_legacy_meeting_backfill_preserves_file_paths():
     )
     executor = MigrationExecutor(connection)
     try:
-        executor.migrate([after])
-        migrated = executor.loader.project_state([after]).apps
+        executor.migrate([after, accounts_at_backfill])
+        migrated = executor.loader.project_state([after, accounts_at_backfill]).apps
         NewMeeting = migrated.get_model("meetings", "Meeting")
         current = NewMeeting.objects.get(pk=meeting.pk)
         assert current.owner_id == owner.pk
@@ -35,4 +36,6 @@ def test_legacy_meeting_backfill_preserves_file_paths():
         Membership = migrated.get_model("accounts", "UserMembership")
         assert Membership.objects.get(user_id=owner.pk).sector_id == current.sector_id
     finally:
-        MigrationExecutor(connection).migrate([after])
+        MigrationExecutor(connection).migrate(
+            MigrationExecutor(connection).loader.graph.leaf_nodes()
+        )

@@ -12,7 +12,6 @@ class ActiveStaff(BasePermission):
             and user.is_staff
             and UserMembership.objects.filter(
                 user=user,
-                auth_source=UserMembership.AuthSource.LOCAL,
                 sector__is_active=True,
             ).exists()
         )

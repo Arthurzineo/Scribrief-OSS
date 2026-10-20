@@ -17,7 +17,6 @@ def _active_sector_id(user):
     return (
         UserMembership.objects.filter(
             user=user, sector__is_active=True,
-            auth_source=UserMembership.AuthSource.LOCAL,
         )
         .values_list("sector_id", flat=True)
         .first()

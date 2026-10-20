@@ -62,7 +62,7 @@ Entre em **Administração** na porta 18575 e siga esta ordem:
 1. **Setores → Novo setor:** informe nome e identificador. Cada usuário pertence a um único setor. Opcionalmente, defina duração máxima de cada gravação e cota mensal de minutos por pessoa.
 2. **Setores → Configurar IA → Chave de API:** escolha `openai`, cole a chave **daquele setor**, confirme sua senha de administrador e salve. Sem chave do setor, a IA desse setor não processa reuniões; **não há chave geral de fallback**. O valor não é mostrado novamente e fica cifrado no banco. Guarde `deploy/secrets/sector_key` em backup protegido.
 3. **IA por setor → Instruções da IA:** se necessário, personalize separadamente os prompts de **ata**, **mapa mental** e **sugestões de correção**; confirme sua senha e salve. A transcrição diarizada não aceita system prompt. Não inclua segredos ou dados pessoais nos prompts.
-4. **Usuários → Novo usuário local:** escolha o setor e defina uma senha temporária forte. Entregue-a por canal seguro. O usuário terá de **trocá-la no primeiro login** antes de ver reuniões. Se o administrador redefinir a senha depois, as sessões antigas são revogadas e nova troca é obrigatória. Ainda não há LDAP.
+4. **Usuários → Novo usuário local:** escolha o setor e defina uma senha temporária forte. Entregue-a por canal seguro. O usuário terá de **trocá-la no primeiro login** antes de ver reuniões. Se o administrador redefinir a senha depois, as sessões antigas são revogadas e nova troca é obrigatória. O login usa somente contas locais.
 5. Faça uma reunião de teste com mídia **autorizada**, confirme o consentimento após o upload e revise transcrição, ata e mapa antes de usar os resultados.
 
 ### Compartilhar ou transferir uma reunião

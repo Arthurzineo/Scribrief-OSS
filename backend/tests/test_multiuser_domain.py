@@ -8,6 +8,18 @@ from apps.meetings.models import Meeting
 
 
 @pytest.mark.django_db
+def test_membership_and_admin_contract_have_no_external_auth_scaffolding(api, user):
+    fields = {field.name for field in UserMembership._meta.fields}
+    assert "auth_source" not in fields
+    assert "external_id" not in fields
+    user.is_staff = True
+    user.save(update_fields=["is_staff"])
+    response = api.get("/api/admin/users/")
+    assert response.status_code == 200
+    assert "auth_source" not in response.data["results"][0]
+
+
+@pytest.mark.django_db
 def test_member_has_one_sector_and_meeting_snapshots_creator_and_sector(api, user):
     sector = Sector.objects.create(name="Ensino", slug="ensino")
     save_sector_key(sector, "sk-test-ensino-not-real-123456")
@@ -51,24 +63,15 @@ def test_member_without_active_sector_cannot_create_or_list(api, user):
 
 
 @pytest.mark.django_db
-def test_future_ldap_identity_cannot_use_local_login(client, user):
-    user.membership.auth_source = UserMembership.AuthSource.LDAP
-    user.membership.save(update_fields=["auth_source"])
+def test_local_login_and_session_keep_meeting_access(client, user):
+    meeting = Meeting.objects.create(owner=user, title="Privada")
     response = client.post(
         "/api/v1/login/",
         data='{"username":"ana","password":"Strong-Test-Password-123"}',
         content_type="application/json",
     )
-    assert response.status_code == 401
-
-
-@pytest.mark.django_db
-def test_existing_local_session_loses_meeting_access_after_ldap_conversion(client, user):
-    meeting = Meeting.objects.create(owner=user, title="Privada")
-    client.force_login(user)
-    user.membership.auth_source = UserMembership.AuthSource.LDAP
-    user.membership.save(update_fields=["auth_source"])
-    assert client.get(f"/api/v1/meetings/{meeting.id}/").status_code == 404
+    assert response.status_code == 200
+    assert client.get(f"/api/v1/meetings/{meeting.id}/").status_code == 200
 
 
 @pytest.mark.django_db

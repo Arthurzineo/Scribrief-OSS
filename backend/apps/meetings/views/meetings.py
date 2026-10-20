@@ -151,7 +151,6 @@ class MeetingsMixin:
                 user__is_active=True,
                 sector_id=current.sector_id,
                 sector__is_active=True,
-                auth_source=UserMembership.AuthSource.LOCAL,
             ).first()
             if target is None or target.user_id == request.user.pk:
                 raise ValidationError({"target_user_id": "Escolha outro membro ativo do setor."})
