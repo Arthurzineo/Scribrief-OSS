@@ -1,95 +1,96 @@
 # Scribrief
 
-Scribrief é uma aplicação web para transcrever reuniões autorizadas, revisar falas, gerar atas por tópicos e visualizar mapas mentais. Usa Django, React/Vite, Celery, PostgreSQL, Valkey (protocolo Redis), ffmpeg e um provedor externo de IA. **Este código é beta, exclusivamente para instalação em rede interna; não o exponha à Internet nem o considere homologado para produção.**
+Scribrief transforma gravações autorizadas de reuniões em **transcrição por falante, ata por tópicos e mapa mental**. O usuário pode revisar falas, editar a ata e compartilhar a leitura com seu setor. A IA pode errar: revise o resultado antes de usá-lo.
 
-O código original deste pacote candidato está sob **GNU AGPL-3.0-only** (`LICENSE`), sujeita à confirmação dos direitos de redistribuição de todos os recursos antes da publicação aberta. **Copyright (C) 2026 Arthur Gonçalves e contribuidores, na medida dos direitos que detenham.** Uso comercial é permitido. Preserve avisos de autoria/licença e disponibilize o código-fonte correspondente aos usuários que interagirem pela rede com uma versão modificada, nos termos da seção 13. A licença não transfere direitos sobre marcas e não torna automaticamente aberto software independente da instalação. Informações de terceiros em `THIRD_PARTY_NOTICES.md`.
+> **Beta para rede interna. Não publique a interface na Internet.** O servidor precisa de saída HTTPS para a API da OpenAI, mas **não** de entrada da Internet. Somente a OpenAI funciona como provedor de IA nesta versão.
 
-## Como funciona
+## Instalação rápida
 
-1. Um usuário autenticado cria uma reunião e envia áudio/vídeo. O upload fica temporariamente em **arquivo privado**, sem ir à IA; a pessoa confirma o consentimento antes de iniciar extração e transcrição. Se não confirmar, o sistema tenta descartar o arquivo ao sair e a limpeza periódica remove rascunhos expirados.
-2. Um worker usa ffmpeg para extrair/normalizar o áudio, divide gravações longas em blocos com sobreposição e chama a OpenAI. As falas diarizadas são remontadas em ordem, com progresso e possibilidade de revisar texto/falantes. A IA pode **sugerir** correções de transcrição e uniões de falantes; nada disso altera falas sem ação humana.
-3. Sob comando do usuário, o sistema gera uma **ata por tópicos** com decisões, participantes e tarefas editáveis. A marcação de revisão é opcional e identifica revisor/data; sem ela, o documento indica que não foi revisado. O mapa mental é uma síntese curta separada, exportável em PNG/PDF. Transcrição, ata e mapa exigem revisão humana: a IA pode errar nomes, prazos, falantes e sentido.
-4. O proprietário controla leitura por colegas do mesmo setor e pode transferir **a reunião inteira** para outro membro ativo desse setor. Áudio MP3, transcrição, ata e mapa seguem protegidos; arquivos de mídia não são BLOBs no PostgreSQL.
+Requisitos: Docker em execução e Docker Compose. No **Windows 11**, use Docker Desktop com WSL 2 e PowerShell 7; no **Linux**, Docker Engine com Compose plugin. Execute os comandos na máquina que hospedará o Scribrief. Não é necessário instalar Python, Node ou ffmpeg no host.
 
-Fluxo técnico: navegador → Nginx HTTPS → Django (páginas MVT + React e API) → PostgreSQL/Valkey/volumes privados; Celery/ffmpeg processam em segundo plano e somente o worker faz chamadas de saída ao provedor de IA. Não existe operação totalmente offline nem provedor de IA alternativo funcional nesta versão: **somente OpenAI está implementada**.
+**Antes de instalar:** descubra o IP/DNS **interno** do servidor (exemplo: `192.168.1.50`). No arquivo `deploy/beta.env`, coloque esse endereço em `PUBLIC_HOSTNAME`, mas **mantenha `PUBLIC_BIND_IP=127.0.0.1` e `ADMIN_BIND_IP=127.0.0.1`**. Assim, o certificado inicial já inclui o endereço da LAN, mas a senha inicial não fica acessível pela rede.
 
-## Beta interno com Docker
+### Windows — PowerShell 7
 
-O pacote usa contêineres Linux. No Windows 11, instale Docker Desktop com WSL 2; no Linux, Docker Engine e Compose plugin. O host não precisa de Python, Node ou ffmpeg. Verifique os termos de licenciamento do Docker Desktop aplicáveis à sua organização.
+```powershell
+git clone https://github.com/Arthurzineo/Scribrief-OSS.git
+cd Scribrief-OSS
+Copy-Item deploy/beta.env.example deploy/beta.env
+# Edite deploy/beta.env: PUBLIC_HOSTNAME=<IP-ou-DNS-interno>; não altere os BIND_IP ainda.
+.\deploy\install.ps1
+```
 
-1. Planeje o HTTPS interno: sem certificado fornecido, o instalador gera automaticamente um **autoassinado válido por 90 dias**, com SAN para `PUBLIC_HOSTNAME` e `ADMIN_HOSTNAME`. O navegador alertará até que a organização confie explicitamente nele. Para dados reais, prefira certificado emitido por CA corporativa; autoassinado não autentica a instalação para outras máquinas por si só.
-2. Copie `deploy/beta.env.example` para `deploy/beta.env`. **Na primeira instalação, mantenha `PUBLIC_BIND_IP` e `ADMIN_BIND_IP` em `127.0.0.1`.** Configure `PUBLIC_HOSTNAME`/`ADMIN_HOSTNAME` (DNS ou IP presentes no certificado) e as portas; os padrões são 18574 para usuários e 18575 para admin. Não ponha chaves nem senhas em `beta.env`. Depois da troca da senha inicial, altere o bind público para a LAN e o administrativo somente para a rede de gestão, com firewall/ACL. O instalador recusa criar ou manter uma conta inicial pendente com qualquer bind fora de loopback.
-3. Windows/PowerShell 7: `./deploy/install.ps1`. Linux/Bash: `bash deploy/install.sh`. Opcionalmente informe o par PEM da CA desde a instalação com `-Certificate ... -PrivateKey ...` ou `--certificate ... --private-key ...`; o certificado deve conter os dois hostnames no SAN. Sem argumentos, reinstalar preserva o certificado já ativo. Para substituição posterior, use **Administração → Certificado HTTPS**, envie certificado/cadeia e chave PEM sem senha e confirme sua senha de administrador.
-4. O instalador cria segredos diferentes para banco, Valkey, sessão Django e cifragem das chaves de IA; reexecutá-lo não os substitui. Em **banco novo, sem usuários**, cria somente a conta `ADMIN` com senha inicial `ADMIN123`, armazenada como hash Argon2; **não cria `demo`**. A senha é pública/previsível: entre **do próprio host** na porta administrativa e troque-a imediatamente. Até a troca, o backend só permite consultar sessão, alterar senha e sair; a interface não carrega dados administrativos. Se alguém contornar o instalador e subir o Compose com bind LAN, o backend também recusa login e sessão dessa conta enquanto a troca estiver pendente. Senha nova: pelo menos 12 caracteres e validações Django. O instalador nunca redefine senha de contas existentes; em atualização, a opção `--skip-admin`/`-SkipAdmin` apenas suprime criação, mantendo a verificação de exposição se houver troca pendente.
-5. Acesse `https://ADMIN_HOSTNAME:ADMIN_HTTPS_PORT/admin/` **localmente**, troque a senha e confirme que pode entrar de novo com a nova senha (a antiga deve falhar). Só então libere a interface de usuário em `https://PUBLIC_HOSTNAME:PUBLIC_HTTPS_PORT/` para a LAN e, se necessário, a porta admin para a rede de gestão. Use firewall/ACL, não somente portas diferentes. Nunca exponha a senha padrão, nem a aplicação beta, à Internet.
+### Linux — Bash
 
-Exemplo com os valores padrão: `https://127.0.0.1:18575/admin/` no próprio servidor. Após a troca de senha, ajuste `deploy/beta.env`, configure firewall/ACL, reexecute `./deploy/install.ps1 -SkipAdmin` (Windows) ou `bash deploy/install.sh --skip-admin` (Linux) e confirme os binds com `docker compose --env-file deploy/beta.env -f compose.beta.yaml ps`. Teste a partir de uma estação autorizada; o navegador precisará confiar no certificado da CA interna ou exibirá aviso para o autoassinado. **Nunca faça redirecionamento de portas/NAT da Internet para qualquer interface.** A instalação nova não cria `demo`; atualizações preservam usuários já existentes.
+```bash
+git clone https://github.com/Arthurzineo/Scribrief-OSS.git
+cd Scribrief-OSS
+cp deploy/beta.env.example deploy/beta.env
+# Edite deploy/beta.env: PUBLIC_HOSTNAME=<IP-ou-DNS-interno>; não altere os BIND_IP ainda.
+bash deploy/install.sh
+```
 
-## Configuração inicial no painel administrativo
+O instalador cria os segredos locais e, se você não fornecer certificado, gera um **HTTPS autoassinado válido por 90 dias**. O navegador avisará que ele não é confiável; para uso corporativo, prefira certificado da CA interna. Se você mudar `PUBLIC_HOSTNAME` depois, precisará substituir o certificado por outro que contenha o novo nome/IP no SAN. Consulte [Operação e atualização](UPGRADE.md).
 
-Entre na **porta administrativa**, não na interface pública. A ordem recomendada é: trocar a senha de `ADMIN` → criar um setor de negócio → cadastrar sua chave OpenAI → revisar os prompts → criar os usuários → fazer uma reunião de teste com mídia autorizada.
+### Primeiro acesso e portas
 
-### Setores e usuários
+| Interface | URL padrão | Quem pode acessar |
+|---|---|---|
+| Administração | `https://127.0.0.1:18575/admin/` | Inicialmente, **somente no próprio servidor**. |
+| Usuários | `https://<PUBLIC_HOSTNAME>:18574/login/` | Após liberar o bind público, apenas estações autorizadas da LAN. |
 
-1. Em **Setores → Novo setor**, preencha nome e identificador (letras minúsculas, números e hífen) e salve. Cada usuário pertence a **exatamente um setor**. O painel **Membros** mostra contas e consumo mensal medido. Desativar um setor com usuários ativos é recusado; não troque o setor de um proprietário enquanto ele tiver reuniões — transfira-as antes.
-2. Opcionalmente, informe **Duração máxima por áudio/vídeo (minutos)**, aplicada a cada arquivo (1–10.080), e **Cota mensal de mídia por usuário (minutos)** (1–44.640). Campo vazio significa sem esse teto setorial, não sem o limite global de bytes. A cota mensal considera uploads confirmados no mês de `America/Sao_Paulo`; falha, cancelamento ou exclusão posterior não devolvem minutos. Não há cobrança retroativa de arquivos antigos.
-3. Em **Usuários → Novo usuário local**, escolha usuário, nome/e-mail opcionais, setor e uma **senha temporária forte** (mínimo de 12 caracteres), então salve. Entregue-a à pessoa por canal seguro; o sistema não mostra a senha novamente. O usuário entra pela interface pública em `/login/` e **obrigatoriamente troca essa senha antes de ver reuniões ou usar a API**. Não existe `demo` padrão nem LDAP nesta versão.
-4. Para redefinir uma senha, em **Usuários** escolha **Editar**, preencha **Nova senha temporária** e salve. Isso revoga imediatamente as sessões anteriores do usuário; ao entrar com a nova senha, ele deve trocá-la. Editar apenas nome/e-mail/setor, sem preencher nova senha, **não** força outra troca nem derruba a sessão. O painel identifica contas com troca pendente. Administradores não são alterados por essa API; cada um altera a própria senha em **Minha senha**.
+Em **instalação nova**, entre na administração com `ADMIN` / `ADMIN123` e **troque a senha imediatamente**. Até essa troca, as duas portas devem permanecer em `127.0.0.1`; o sistema bloqueia a conta inicial se qualquer bind for aberto à rede. Não é criada conta `demo`. A nova senha precisa ter pelo menos 12 caracteres e ser diferente da atual.
 
-### Chave OpenAI do setor e instruções da IA
+**Depois da troca**, edite `deploy/beta.env`: mude somente `PUBLIC_BIND_IP` para o IP **privado** do servidor, igual à interface de rede que atenderá a LAN (por exemplo, `192.168.1.50`). Mantenha `ADMIN_BIND_IP=127.0.0.1` para administrar no próprio host. Configure o firewall para permitir a porta **18574** apenas às estações autorizadas; **não faça port forwarding/NAT da Internet**. Aplique a configuração:
 
-Em **Setores → Configurar IA** (ou **IA por setor**), selecione o setor. Em **Chave de API**, escolha `openai`, cole a chave desse setor, confirme a senha do administrador e clique **Salvar chave**. A interface informa se há chave e sua versão, mas **nunca devolve o valor**. A chave fica cifrada no banco com a chave-mestra em `deploy/secrets/sector_key`, que precisa estar no backup protegido. Não há chave global de fallback: sem chave daquele setor, as chamadas de IA do setor não funcionam. Use uma chave por setor para separar uso/cobrança; o painel mostra custos **estimados**, não a fatura oficial. Só a OpenAI possui adaptador funcional nesta versão, mesmo que a arquitetura tenha pontos de extensão.
+```powershell
+# Windows / PowerShell 7
+.\deploy\install.ps1 -SkipAdmin
+```
 
-Na mesma área, abra **Instruções da IA**. Há três system prompts independentes por setor: **ata**, **mapa mental** e **sugestões de correção da transcrição**. O texto padrão já está disponível; editar e salvar exige confirmar a senha do administrador, e **Restaurar padrão** remove apenas a personalização desse setor. Mudanças são usadas quando o próximo job inicia; não reescrevem resultados existentes. A transcrição diarizada **não recebe system prompt**, portanto não há campo de prompt para ela. Não coloque chaves, senhas ou dados pessoais no texto: o prompt personalizado fica em claro no banco/backups. Prompts influenciam qualidade e custo, **não** substituem validações, permissões ou revisão humana.
+```bash
+# Linux / Bash
+bash deploy/install.sh --skip-admin
+```
 
-### Leitura setorial e transferência da ata/reunião
+Agora os usuários entram em `https://<PUBLIC_HOSTNAME>:18574/login/`. Verifique as portas com `docker compose --env-file deploy/beta.env -f compose.beta.yaml ps`. A porta administrativa **18575** continua local; expô-la a uma rede de gestão exige firewall/ACL e certificado adequado, nunca acesso pela Internet. Porta separada não substitui proteção de rede.
 
-Por padrão, só o dono vê a reunião. Na página da reunião, em **Acesso à reunião**, o dono pode clicar **Permitir leitura ao setor**: colegas ativos do mesmo setor passam a ver áudio, transcrição, ata e mapa **somente em leitura**. Essa opção pode ser revogada; compartilhamento não permite editar ou excluir.
+## Configuração inicial no painel
 
-Para entregar a ata a outra pessoa, o dono usa **Transferir toda a reunião para**, escolhe um membro **ativo do mesmo setor** e confirma. A ação transfere a propriedade de **toda a reunião**, não só o texto da ata: áudio, transcrição, ata e mapa. O novo dono pode editar, gerar novamente e excluir; o dono anterior perde essas permissões imediatamente. Se a leitura setorial estiver ligada, ele ainda poderá consultar como colega. A transferência só aparece após a transcrição e é recusada enquanto houver processamento/análise incompatível em andamento; não existe transferência entre setores. O histórico de auditoria registra quem transferiu e para quem.
+Entre em **Administração** na porta 18575 e siga esta ordem:
 
-## Segurança e privacidade
+1. **Setores → Novo setor:** informe nome e identificador. Cada usuário pertence a um único setor. Opcionalmente, defina duração máxima de cada gravação e cota mensal de minutos por pessoa.
+2. **Setores → Configurar IA → Chave de API:** escolha `openai`, cole a chave **daquele setor**, confirme sua senha de administrador e salve. Sem chave do setor, a IA desse setor não processa reuniões; **não há chave geral de fallback**. O valor não é mostrado novamente e fica cifrado no banco. Guarde `deploy/secrets/sector_key` em backup protegido.
+3. **IA por setor → Instruções da IA:** se necessário, personalize separadamente os prompts de **ata**, **mapa mental** e **sugestões de correção**; confirme sua senha e salve. A transcrição diarizada não aceita system prompt. Não inclua segredos ou dados pessoais nos prompts.
+4. **Usuários → Novo usuário local:** escolha o setor e defina uma senha temporária forte. Entregue-a por canal seguro. O usuário terá de **trocá-la no primeiro login** antes de ver reuniões. Se o administrador redefinir a senha depois, as sessões antigas são revogadas e nova troca é obrigatória. Ainda não há LDAP.
+5. Faça uma reunião de teste com mídia **autorizada**, confirme o consentimento após o upload e revise transcrição, ata e mapa antes de usar os resultados.
 
-- **Rede interna obrigatória:** as portas pública e administrativa são separadas; `/admin`, `/api/admin`, schema e Swagger não são servidos na porta pública. A porta administrativa deve ficar no loopback ou em rede de gestão restrita. PostgreSQL, Valkey e backend não publicam porta no host. Firewall/ACL/VLAN e ausência de NAT/port forwarding continuam responsabilidade do operador. O worker precisa apenas de **saída HTTPS (TCP 443)** controlada à OpenAI; saída não implica permissão de entrada da Internet. O Compose não filtra o destino do egress.
-- **Identidade e permissão:** senhas são armazenadas como hash Argon2; sessão Django usa cookie HttpOnly/Secure sob HTTPS, CSRF protege alterações e tentativas de login são limitadas. Criar/redefinir senha administrativa exige troca pelo usuário antes de qualquer acesso a reuniões; reset revoga sessões antigas. Só o dono altera/exclui uma reunião; partilha setorial é leitura, e transferência exige outro membro ativo do mesmo setor. O backend aplica essas regras, não apenas os botões da interface.
-- **Dados e segredos:** mídia permanece em arquivos privados, nunca BLOB no banco ou diretório público. O vídeo/original é apagado após transcrição bem-sucedida; o MP3 e a transcrição ficam até exclusão/purga. Chaves da OpenAI são cifradas por setor no banco e não são exibidas após salvar; `deploy/secrets/`, volume TLS, volumes de mídia/banco e backups precisam de ACL e proteção do daemon Docker. **O script de backup não cifra o destino.** Não envie áudio, banco, prompts privados, segredos ou logs com dados pessoais para issues.
-- **Auditoria e retenção:** login, ações de usuário, alterações administrativas e execuções geram eventos; edições textuais registram referência de linha/campo e HMAC antes/depois sem copiar o conteúdo no log. Logs ativos de ação/sistema são retidos por 90 dias, não são trilha imutável/WORM. Excluir uma reunião a oculta imediatamente; o administrador pode restaurá-la por 72 horas, depois a purga remove dados e arquivos. Backups podem manter cópias por mais tempo e exigem política própria.
-- **Risco residual:** a senha bootstrap `ADMIN123` é publicamente conhecida e só deve existir com ambos os binds em loopback até a troca. O autoassinado inicial **não prova a identidade do servidor** para outras estações sem confiança instalada; prefira CA corporativa. Há CVEs altas/críticas ainda não aceitas nas imagens identificadas na auditoria preliminar, e não houve homologação para Internet ou produção. Consentimento, base legal, política de backup e revisão humana são decisões da organização.
+### Compartilhar ou transferir uma reunião
 
-**Rotação e recuperação TLS:** a troca administrativa exige sessão staff, CSRF, senha atual e os dois arquivos PEM. O Nginx recarrega após a validação; confirme o SHA-256 servido nas duas portas. Se o certificado expirar e o navegador bloquear o painel, um operador com acesso ao host poderá executar novamente o instalador com `-Certificate/-PrivateKey` ou `--certificate/--private-key` para substituir o par; faça backup antes. Reexecutar sem esses parâmetros preserva o certificado existente, inclusive se expirado. A chave enviada **não** fica no banco nem aparece na API. Certificados de CA devem ser confiados pelo cliente; o servidor não valida essa confiança.
+Por padrão, **só o dono** vê a reunião. Em **Acesso à reunião**, ele pode permitir **leitura** por colegas do mesmo setor; eles poderão consultar áudio, transcrição, ata e mapa, mas não editar/excluir. Para entregar a ata a outra pessoa, use **Transferir toda a reunião para** e selecione um membro ativo **do mesmo setor**. A transferência muda o dono de **todos os artefatos**, não apenas da ata; o novo dono passa a poder editar e excluir. O antigo dono perde essas permissões, salvo leitura setorial se estiver ativada.
 
-Backups feitos antes da inclusão do volume TLS ainda podem ser restaurados no clone, mas recebem **um autoassinado novo**; a confiança anterior dos clientes não é preservada. Um backup novo sempre inclui `tls/current.pem` no manifesto; se o arquivo existir fora dele, a verificação recusa o bundle.
+## Imagens de exemplo
 
-No Linux, mantenha `deploy/secrets/` e `deploy/certs/` com permissão `0700` e pertencentes à conta instaladora. Os arquivos de segredo Compose ficam legíveis (`0644`) apenas dentro do diretório privado para os processos não-root; o par TLS ativo **não** usa bind de arquivos do host: fica no volume Docker `tls`, montado para escrita apenas no backend e leitura no Nginx, nunca no worker/banco. No Windows, restrinja pastas de segredos e eventuais certificados legados por ACL NTFS. O Compose não coloca o conteúdo dos segredos em variáveis de ambiente nem na imagem. **O operador deve proteger o daemon/volumes Docker e o destino de backup.**
+As capturas abaixo mostram a interface real com **respostas de API simuladas e nomes fictícios**; não usam contas, chaves ou reuniões de uma instalação verdadeira.
 
-**Topologia obrigatória:** a interface de usuário atende apenas estações da LAN autorizada; a interface administrativa atende somente a rede de gestão; PostgreSQL, Valkey, backend e worker ficam em redes Docker privadas, sem publicação no host nem rota de entrada da Internet. Configure firewall do host, roteador e ACL/VLAN para **negar conexões de entrada da Internet** para ambas as interfaces, principalmente `/admin/`. Não faça port forwarding/NAT externo. Somente o Nginx é publicado pelo Compose, e bind de IP não substitui firewall. Mídia permanece em volume privado de arquivos, **não** em BLOB no banco.
+<details><summary>Ver telas do painel administrativo</summary>
 
-O worker precisa de **saída HTTPS (TCP 443) controlada à API da OpenAI**, com DNS e validação TLS; esta saída não autoriza acesso de entrada da Internet. O frontend e as estações não precisam acessar a OpenAI diretamente. Não há funcionamento totalmente offline. Cadastre uma chave separada por setor no admin depois de criar o setor e os usuários. A equipe de rede deve permitir somente os destinos necessários, registrar e monitorar o egress; o Compose sozinho não aplica uma ACL de destino à OpenAI. Conteúdo autorizado de reunião é enviado ao provedor externo após consentimento.
+![Setores fictícios no painel administrativo](frontend/docs/screenshots/admin-setores.png)
 
-## Limites funcionais e operacionais
+![Configuração simulada da chave OpenAI por setor](frontend/docs/screenshots/admin-ia.png)
 
-| Item | Comportamento atual |
-|---|---|
-| Tamanho de upload | `MAX_UPLOAD_MB=5120` por padrão (aprox. 5 GiB), configurável. É teto, **não** teste de carga/recuperação homologado para arquivos desse tamanho. |
-| Duração por arquivo | Teto opcional por setor de 1 a 10.080 minutos; duração medida com ffprobe. Campo vazio deixa apenas o limite global de bytes. |
-| Cota mensal por usuário | Teto opcional por setor de 1 a 44.640 minutos; conta mídias confirmadas no mês local, sem estorno por falha/exclusão posterior e sem backfill histórico. |
-| Gravação longa | Blocos de áudio de até cerca de 20 minutos, com sobreposição e até 10 chamadas paralelas após o primeiro bloco; checkpoints permitem retomada, mas reuniões longas ainda exigem validação operacional e podem aumentar tempo/custo. |
-| Exclusão | Ocultação imediata; restauração administrativa em até 72 horas; purga posterior de transcrição, ata e mídia privada. Backups seguem política própria. |
-| Logs | Eventos ativos de auditoria e sistema: 90 dias. Ledger de uso/custo e backups têm políticas separadas a definir. |
-| IA e custos | OpenAI é o único provedor funcional; requer chave no setor e conectividade de saída. Custos exibidos são estimativas parciais, não conciliação de fatura. |
+![Usuários fictícios e formulário de cadastro](frontend/docs/screenshots/admin-usuarios.png)
 
-## Operação, backup e atualização
+</details>
 
-Use `docker compose --env-file deploy/beta.env -f compose.beta.yaml ps` e `logs` para diagnóstico. Nunca execute `down -v` para atualizar ou parar, pois remove volumes. Para backup frio, use `deploy/backup.ps1 -EncryptedDestination <pasta-cifrada> -AcknowledgeProtectedStorage` no Windows ou `deploy/backup.sh --encrypted-destination <pasta-cifrada> --ack-protected-storage` no Linux. O comando recusa jobs ativos, pausa temporariamente os serviços de aplicação e copia banco, mídia, **volume TLS ativo**, configuração e segredos para o destino. **O bundle não é cifrado pelo script**: a pasta precisa ter cifragem e ACL corporativa. Ensaie `deploy/restore-test.ps1 -BackupDirectory <backup>` ou `deploy/restore-test.sh <backup>`; isso cria um projeto Docker isolado sem portas publicadas e não toca no original. Ainda falta definir retenção, destino externo e RPO/RTO de cada empresa.
+## Limites e segurança em resumo
 
-Para atualizar ou reverter versão/imagens, siga **`UPGRADE.md`**. Não aplique o novo pacote sobre dados reais sem janela, backup frio verificado e clone de ensaio; migrações não são revertidas automaticamente.
+- Upload: `MAX_UPLOAD_MB=5120` por padrão (cerca de **5 GiB**), configurável; esse tamanho máximo **não foi homologado em teste de carga**. Limites opcionais por setor: 1–10.080 min por arquivo e 1–44.640 min/mês por usuário.
+- Mídia fica em **arquivos privados**, nunca em BLOB no banco. O original/vídeo é apagado após transcrição bem-sucedida; o áudio MP3 permanece. Excluir oculta a reunião; o admin pode restaurá-la em até **72 horas**, antes da purga. Backups seguem retenção própria.
+- Senhas usam hash, sessão HTTPS/CSRF e acesso por proprietário/setor são verificados no backend. Chaves OpenAI são cifradas por setor; logs ativos de ação/sistema são mantidos por **90 dias**. Os custos mostrados são **estimativas parciais**, não a fatura oficial.
+- Proteja `deploy/secrets/`, banco, volumes de mídia/TLS e backups. **O script de backup não cifra os arquivos**: use destino cifrado e ACL. Não execute `docker compose down -v`, pois isso remove volumes.
+- O beta **não está homologado para produção nem para a Internet**; ainda há riscos de imagem/dependências e testes operacionais pendentes. Faça backup e ensaie a restauração antes de dados reais. Veja [arquitetura e limites](ARCHITECTURE.md), [atualização/backup](UPGRADE.md) e [relato privado de vulnerabilidades](SECURITY.md).
 
-Guarde `deploy/secrets/sector_key` e o volume TLS junto do backup seguro: sem a primeira, chaves de IA cifradas no banco não podem ser abertas; sem o segundo, o HTTPS restaurado pode mudar. Não registre nem envie `deploy/secrets/`, `deploy/certs/`, `tls/current.pem`, `deploy/beta.env`, áudio, banco, backup ou dados reais em issues.
+## Licença
 
-Antes de dados reais, valide na sua rede: certificado confiável no cliente; isolamento da porta admin; restauração completa de banco **e** mídia; retenção e exclusão; carga de até 5 GiB ou reduza `MAX_UPLOAD_MB`; reunião longa; contas de setores distintos; monitoramento de worker/disco. A varredura preliminar de imagens ainda tem achados altos/críticos no backend (ffmpeg/bibliotecas) e no `gosu` da imagem PostgreSQL; não há aceite de risco ou homologação de produção. Refaça a análise nas imagens exatas da sua instalação. Custos exibidos são **estimativas**, não fatura. A transcrição e a ata requerem revisão humana; o usuário deve ter autorização para enviar o conteúdo ao provedor externo.
-
-## Desenvolvimento
-
-No backend: `uv sync --frozen --python 3.12`, `uv run pytest -q`, `uv run ruff check .`. No frontend: `npm ci`, `npm test`, `npm run build`. Os testes automatizados simulam o provedor externo e não cobram chamadas de IA. Há detalhes da arquitetura em `ARCHITECTURE.md`.
-
-Consulte `SECURITY.md` para relatar vulnerabilidades de forma privada. Não use issues públicas para dados de cliente ou segredos.
+Código original sob [AGPL-3.0-only](LICENSE), com uso comercial permitido e obrigações de disponibilização do código-fonte correspondente aos usuários de uma versão modificada oferecida pela rede. Copyright © 2026 Arthur Gonçalves e contribuidores, na extensão dos direitos que detenham. Veja [avisos de terceiros](THIRD_PARTY_NOTICES.md). A publicação aberta permanece condicionada às verificações de segurança e proveniência pendentes.
