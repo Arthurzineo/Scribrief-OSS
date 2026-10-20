@@ -10,6 +10,7 @@ import MeetingPage from './features/meetings/MeetingPage.jsx';
 import AccountPage from './features/accounts/AccountPage.jsx';
 import AdminPage from './features/admin/AdminPage.jsx';
 import AdminLoginPage from './features/admin/AdminLoginPage.jsx';
+import FirstAccessPage from './features/accounts/FirstAccessPage.jsx';
 
 const mvt = document.getElementById('root')?.dataset.mvt === '1';
 
@@ -21,6 +22,7 @@ function RequireAuth({ children }) {
   }, [ready, user]);
   if (!ready) return null;
   if (!user) return mvt ? null : <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  if (user.must_change_password) return mvt ? null : <Navigate to={user.is_staff ? '/admin' : '/primeiro-acesso'} replace />;
   return children;
 }
 
@@ -30,6 +32,7 @@ export default function App() {
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
       <Route element={<RequireAuth><MeetingsProvider /></RequireAuth>}>
         <Route index element={<MeetingsPage />} />
         <Route path="reunioes/nova" element={<NewMeetingPage />} />
@@ -45,6 +48,7 @@ export default function App() {
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
       <Route
         element={(
           <RequireAuth>

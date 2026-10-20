@@ -13,15 +13,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (user) return <PageRedirect to="/" />;
+  if (user) return <PageRedirect to={user.must_change_password ? (user.is_staff ? '/admin/' : '/primeiro-acesso/') : '/'} />;
 
   async function submit(e) {
     e.preventDefault();
     setError('');
     setBusy(true);
     try {
-      await login(email.trim(), password);
-      nav(document.getElementById('root')?.dataset.next || loc.state?.from || '/', { replace: true });
+      const signedIn = await login(email.trim(), password);
+      nav(signedIn?.must_change_password
+        ? (signedIn.is_staff ? '/admin/' : '/primeiro-acesso/')
+        : (document.getElementById('root')?.dataset.next || loc.state?.from || '/'), { replace: true });
     } catch (err) {
       // Mensagem genérica: não revela se o erro foi no e-mail ou na senha.
       setError(err.status === 0 ? 'Não foi possível conectar ao servidor. Tente novamente.' : 'E-mail ou senha incorretos.');

@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from apps.accounts.pages import account_page, login_page
+from apps.accounts.pages import account_page, first_access_page, login_page
 from apps.admin_panel.pages import admin_login_page, admin_page
 from apps.admin_panel.permissions import ActiveStaff
 from apps.meetings.pages import meeting_page, meetings_page, new_meeting_page
@@ -15,6 +15,7 @@ urlpatterns = [
     path("reunioes/<uuid:meeting_id>/ata/", meeting_page, {"tab": "ata"}, name="mvt-minutes"),
     path("reunioes/<uuid:meeting_id>/mapa/", meeting_page, {"tab": "mapa"}, name="mvt-map"),
     path("conta/", account_page, name="mvt-account"),
+    path("primeiro-acesso/", first_access_page, name="mvt-first-access"),
     path("admin/login/", admin_login_page, name="mvt-admin-login"),
     path("admin/", admin_page, name="mvt-admin"),
     path("health/", lambda request: JsonResponse({"status": "ok"})),

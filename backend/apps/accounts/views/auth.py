@@ -44,7 +44,8 @@ def login_view(request):
                      details={"username_fingerprint": fingerprint(username.casefold())})
         return _error("invalid_credentials", "Credenciais inválidas.", 401)
     if not _active_member(user) or (
-        user.membership.must_change_password and unsafe_bootstrap_bind()
+        user.membership.bootstrap_local_only and user.membership.must_change_password
+        and unsafe_bootstrap_bind()
     ):
         record_audit(None, "login", outcome="failed", request=request,
                      details={"username_fingerprint": fingerprint(username.casefold())})

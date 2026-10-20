@@ -37,9 +37,9 @@ class UserAdminViewSet(viewsets.ModelViewSet):
                 "last_name": serializer.instance.last_name,
                 "email": serializer.instance.email,
             }
-            password_changed = "password" in serializer.validated_data
+            password_changed = bool(serializer.validated_data.get("password"))
             user = serializer.save()
-            if was_active and not user.is_active:
+            if (was_active and not user.is_active) or password_changed:
                 revoke_user_sessions(user.pk)
             record_audit(
                 self.request.user, "user_updated", request=self.request,

@@ -15,6 +15,8 @@ from .views import _active_member
 
 def login_form(request, *, admin=False):
     if _active_member(request.user) and (not admin or request.user.is_staff):
+        if request.user.membership.must_change_password:
+            return redirect("mvt-admin" if request.user.is_staff else "mvt-first-access")
         return redirect("mvt-admin" if admin else "mvt-meetings")
     requested_next = request.POST.get("next") or request.GET.get("next") or ""
     safe_next = (
@@ -32,10 +34,13 @@ def login_form(request, *, admin=False):
         if len(username) <= 150 and username and password and not initial_login_forbidden(username):
             user = authenticate(request, username=username, password=password)
         if (user is not None and _active_member(user) and (not admin or user.is_staff)
-                and not (user.membership.must_change_password and unsafe_bootstrap_bind())):
+                and not (user.membership.bootstrap_local_only
+                         and user.membership.must_change_password and unsafe_bootstrap_bind())):
             login(request, user)
             record_audit(user, "login", request=request, subject_user=user,
                          target_type="user", target_ref=user.pk)
+            if user.membership.must_change_password:
+                return redirect("mvt-admin" if user.is_staff else "mvt-first-access")
             return redirect("mvt-admin" if admin else safe_next)
         record_audit(None, "login", outcome="failed", request=request,
                      details={"username_fingerprint": fingerprint(username.casefold())})
@@ -55,3 +60,13 @@ def login_page(request):
 @member_page
 def account_page(request):
     return render_page(request, "account", "Conta")
+
+
+@require_safe
+@member_page
+def first_access_page(request):
+    if request.user.is_staff:
+        return redirect("mvt-admin")
+    if not request.user.membership.must_change_password:
+        return redirect("mvt-meetings")
+    return render_page(request, "first_access", "Troca obrigatória de senha")

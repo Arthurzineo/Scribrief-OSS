@@ -2291,6 +2291,9 @@ components:
         password:
           type: string
           writeOnly: true
+        must_change_password:
+          type: boolean
+          readOnly: true
         monthly_used_seconds:
           type: string
           nullable: true
@@ -2305,6 +2308,7 @@ components:
       - is_staff
       - monthly_upload_count
       - monthly_used_seconds
+      - must_change_password
       - sector_id
       - sector_name
       - username
@@ -2901,6 +2905,9 @@ components:
         password:
           type: string
           writeOnly: true
+        must_change_password:
+          type: boolean
+          readOnly: true
         monthly_used_seconds:
           type: string
           nullable: true

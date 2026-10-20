@@ -102,6 +102,13 @@ def password_view(request):
             details={"reason": "incorrect_current_password"},
         )
         return _error("invalid_credentials", "Senha atual incorreta.", 400)
+    if current == new:
+        record_audit(
+            request.user, "password_change_failed", outcome="failed", request=request,
+            subject_user=request.user, target_type="user", target_ref=request.user.pk,
+            details={"reason": "reused_current_password"},
+        )
+        return _error("invalid_password", "A nova senha deve ser diferente da atual.", 400)
     try:
         validate_password(new, user=request.user)
     except DjangoValidationError as exc:
@@ -114,7 +121,9 @@ def password_view(request):
     with transaction.atomic():
         request.user.set_password(new)
         request.user.save(update_fields=["password"])
-        UserMembership.objects.filter(user_id=request.user.pk).update(must_change_password=False)
+        UserMembership.objects.filter(user_id=request.user.pk).update(
+            must_change_password=False, bootstrap_local_only=False,
+        )
         record_audit(request.user, "password_changed", request=request,
                      subject_user=request.user, target_type="user", target_ref=request.user.pk)
     update_session_auth_hash(request, request.user)

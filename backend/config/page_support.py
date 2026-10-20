@@ -16,6 +16,7 @@ TEMPLATES = {
     "new_meeting": "meetings/new.html",
     "meeting": "meetings/detail.html",
     "account": "accounts/profile.html",
+    "first_access": "accounts/first_access.html",
     "admin": "admin_panel/dashboard.html",
 }
 
@@ -32,7 +33,7 @@ def member_page(view):
 
 def render_page(request, page, title, **extra):
     meetings = ()
-    if page not in ("login", "admin_login", "admin"):
+    if page not in ("login", "admin_login", "admin", "first_access"):
         meetings = readable_meetings(request.user).only(
             "id", "title", "status", "meeting_date", "owner_id", "sector_id", "shared_with_sector"
         ).order_by("-created_at")[:100]

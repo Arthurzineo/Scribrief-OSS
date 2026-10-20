@@ -22,6 +22,7 @@ def test_fresh_bootstrap_creates_only_admin_and_never_resets_password(monkeypatc
     assert admin.password != "ADMIN123"
     assert admin.password.startswith("argon2$")
     assert admin.membership.must_change_password
+    assert admin.membership.bootstrap_local_only
     assert admin.membership.sector.slug == "administracao"
     call_command("bootstrap_admin")
     admin.refresh_from_db()
@@ -86,6 +87,7 @@ def test_initial_admin_must_change_password_before_any_privileged_action(client,
     assert client.get("/api/admin/sectors/").status_code == 200
     admin = get_user_model().objects.get(username="ADMIN")
     assert not admin.membership.must_change_password
+    assert not admin.membership.bootstrap_local_only
     assert not admin.check_password("ADMIN123")
     assert admin.check_password("Different-Strong-Password-456")
     assert client.post("/api/v1/logout/").status_code == 200

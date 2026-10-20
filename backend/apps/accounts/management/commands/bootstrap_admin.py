@@ -17,7 +17,9 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         user_model = get_user_model()
-        pending = UserMembership.objects.filter(must_change_password=True).exists()
+        pending = UserMembership.objects.filter(
+            must_change_password=True, bootstrap_local_only=True,
+        ).exists()
         create = not options["skip_create"] and not user_model.objects.exists()
         if pending or create:
             if label := unsafe_bootstrap_bind():
@@ -31,7 +33,7 @@ class Command(BaseCommand):
         sector = Sector.objects.create(name="Administração", slug="administracao")
         admin = user_model.objects.create_superuser(username="ADMIN", password="ADMIN123")
         UserMembership.objects.create(
-            user=admin, sector=sector, must_change_password=True,
+            user=admin, sector=sector, must_change_password=True, bootstrap_local_only=True,
         )
         self.stdout.write(
             "Conta ADMIN criada para acesso local. Troque a senha no primeiro login "

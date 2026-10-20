@@ -21,4 +21,5 @@ def initial_login_forbidden(username):
     """Reject a pending bootstrap identity before checking a known password."""
     return bool(unsafe_bootstrap_bind()) and get_user_model().objects.filter(
         username=username, membership__must_change_password=True,
+        membership__bootstrap_local_only=True,
     ).exists()

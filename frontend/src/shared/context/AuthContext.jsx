@@ -21,7 +21,9 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const u = await auth.login(email, password);
-    setUser(u || (await auth.getMe()));
+    const signedIn = u || (await auth.getMe());
+    setUser(signedIn);
+    return signedIn;
   }, []);
   const logout = useCallback(async () => { try { await auth.logout(); } finally { setUser(null); } }, []);
 

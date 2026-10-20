@@ -18,6 +18,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
     sector_name = serializers.CharField(source="membership.sector.name", read_only=True)
     password = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
     auth_source = serializers.CharField(source="membership.auth_source", read_only=True)
+    must_change_password = serializers.BooleanField(
+        source="membership.must_change_password", read_only=True,
+    )
     monthly_used_seconds = serializers.SerializerMethodField()
     monthly_upload_count = serializers.SerializerMethodField()
 
@@ -38,10 +41,11 @@ class AdminUserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "first_name", "last_name", "email", "is_active",
             "is_staff", "sector_id", "sector_name", "auth_source", "password",
+            "must_change_password",
             "monthly_used_seconds", "monthly_upload_count",
         ]
         read_only_fields = [
-            "id", "is_staff", "sector_name", "auth_source",
+            "id", "is_staff", "sector_name", "auth_source", "must_change_password",
             "monthly_used_seconds", "monthly_upload_count",
         ]
         extra_kwargs = {"username": {"required": True}}
@@ -73,7 +77,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
         user = get_user_model()(**validated_data)
         user.set_password(password)
         user.save()
-        UserMembership.objects.create(user=user, sector=sector)
+        UserMembership.objects.create(user=user, sector=sector, must_change_password=True)
         return user
 
     @transaction.atomic
@@ -85,7 +89,13 @@ class AdminUserSerializer(serializers.ModelSerializer):
         if password:
             instance.set_password(password)
         instance.save()
+        fields = []
         if membership:
             instance.membership.sector = membership["sector"]
-            instance.membership.save(update_fields=["sector"])
+            fields.append("sector")
+        if password:
+            instance.membership.must_change_password = True
+            fields.append("must_change_password")
+        if fields:
+            instance.membership.save(update_fields=fields)
         return instance

@@ -11,7 +11,7 @@ import AdminDeletionPanel from './AdminDeletionPanel.jsx';
 import AdminHealthPanel from './AdminHealthPanel.jsx';
 import SectorPromptPanel from './SectorPromptPanel.jsx';
 import AdminTlsPanel from './AdminTlsPanel.jsx';
-import InitialPasswordPanel from './InitialPasswordPanel.jsx';
+import InitialPasswordPanel from '../accounts/InitialPasswordPanel.jsx';
 
 const emptySector = { name: '', slug: '', is_active: true, max_upload_minutes: '', max_monthly_minutes_per_user: '' };
 const emptyUser = { username: '', first_name: '', last_name: '', email: '', sector_id: '', password: '' };
@@ -73,7 +73,7 @@ export default function AdminPage() {
   if (!ready) return null;
   if (!user) return <PageRedirect to="/admin/login/" />;
   if (!user.is_staff) return <main className="page"><h1 className="t-page">Acesso negado</h1><p>Conta sem permissão administrativa.</p></main>;
-  if (user.must_change_password) return <InitialPasswordPanel />;
+  if (user.must_change_password) return <InitialPasswordPanel admin />;
 
   async function saveSector(event) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('');
@@ -251,7 +251,7 @@ export default function AdminPage() {
     </section> : tab === 'users' ? <section className="admin-grid">
       <div className="admin-card"><h2 className="t-sec">Usuários</h2>
         <ul className="admin-list">{users.map((item) => <li key={item.id}>
-          <div><strong>{item.username}</strong><small>{item.sector_name || 'Sem setor'} · {item.is_active ? 'Ativo' : 'Inativo'}</small></div>
+          <div><strong>{item.username}</strong><small>{item.sector_name || 'Sem setor'} · {item.is_active ? 'Ativo' : 'Inativo'}{item.must_change_password ? ' · Troca de senha pendente' : ''}</small></div>
           {!item.is_staff ? <div className="admin-actions"><Button onClick={() => setUserForm({ id: item.id, username: item.username, first_name: item.first_name, last_name: item.last_name, email: item.email, sector_id: item.sector_id, password: '' })}>Editar</Button><Button onClick={() => toggleUser(item)}>{item.is_active ? 'Desativar' : 'Ativar'}</Button></div> : null}
         </li>)}</ul>
         <div className="admin-actions"><Button disabled={userPage <= 1} onClick={() => loadPage('users', userPage - 1)}>Anterior</Button><span>Página {userPage}</span><Button disabled={!userNext} onClick={() => loadPage('users', userPage + 1)}>Próxima</Button></div>
@@ -264,7 +264,7 @@ export default function AdminPage() {
         <label className="at-field"><span className="at-field__label">Setor</span><select className="select" value={userForm.sector_id} required onChange={(e) => setUserForm({ ...userForm, sector_id: e.target.value })}>
           <option value="">Selecione</option>{sectorChoices.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select></label>
-        <TextField label={userForm.id ? 'Nova senha (opcional)' : 'Senha inicial'} type="password" value={userForm.password} minLength={12} required={!userForm.id} autoComplete="new-password" onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} />
+        <TextField label={userForm.id ? 'Nova senha temporária (opcional)' : 'Senha temporária'} hint="Ao criar ou redefinir a senha, o usuário terá de trocá-la no próximo login." type="password" value={userForm.password} minLength={12} required={!userForm.id} autoComplete="new-password" onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} />
         <div className="admin-actions"><Button type="submit" variant="primary" disabled={busy}>Salvar usuário</Button>{userForm.id ? <Button onClick={() => setUserForm(emptyUser)}>Cancelar</Button> : null}</div>
       </form>
     </section> : null}

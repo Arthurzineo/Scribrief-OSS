@@ -95,6 +95,29 @@ jobs:
           csrf="$(awk '$6 == "csrftoken" {print $7}' "$jar")"
           test "$(curl -ksS -b "$jar" -c "$jar" -H "Origin: $base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"currentPassword":"ADMIN123","newPassword":"Temporary-CI-Strong-Password-456"}' -o /dev/null -w '%{http_code}' "$base/api/v1/account/password/")" = 200
           test "$(curl -ksS -b "$jar" -o /dev/null -w '%{http_code}' "$base/api/admin/sectors/")" = 200
+      - name: Usuário criado pelo admin deve trocar senha antes de usar a LAN
+        run: |
+          admin_jar="$(mktemp)"
+          user_jar="$(mktemp)"
+          trap 'rm -f "$admin_jar" "$user_jar"' EXIT
+          admin_base='https://127.0.0.1:18575'
+          public_base='https://127.0.0.1:18574'
+          curl -ksS -c "$admin_jar" "$admin_base/api/v1/csrf/" >/dev/null
+          csrf="$(awk '$6 == "csrftoken" {print $7}' "$admin_jar")"
+          test "$(curl -ksS -b "$admin_jar" -c "$admin_jar" -H "Origin: $admin_base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"username":"ADMIN","password":"Temporary-CI-Strong-Password-456"}' -o /dev/null -w '%{http_code}' "$admin_base/api/v1/login/")" = 200
+          csrf="$(awk '$6 == "csrftoken" {print $7}' "$admin_jar")"
+          sector="$(curl -ksS -b "$admin_jar" -c "$admin_jar" -H "Origin: $admin_base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"name":"Setor de teste","slug":"setor-de-teste"}' "$admin_base/api/admin/sectors/")"
+          sector_id="$(printf '%s' "$sector" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          test -n "$sector_id"
+          test "$(curl -ksS -b "$admin_jar" -c "$admin_jar" -H "Origin: $admin_base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d "{\"username\":\"ci_user\",\"password\":\"Safe-Temporary-Password-789\",\"sector_id\":$sector_id}" -o /dev/null -w '%{http_code}' "$admin_base/api/admin/users/")" = 201
+          curl -ksS -c "$user_jar" "$public_base/api/v1/csrf/" >/dev/null
+          csrf="$(awk '$6 == "csrftoken" {print $7}' "$user_jar")"
+          test "$(curl -ksS -b "$user_jar" -c "$user_jar" -H "Origin: $public_base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"username":"ci_user","password":"Safe-Temporary-Password-789"}' -o /dev/null -w '%{http_code}' "$public_base/api/v1/login/")" = 200
+          test "$(curl -ksS -b "$user_jar" -o /dev/null -w '%{http_code}' "$public_base/api/v1/meetings/")" = 403
+          test "$(curl -ksS -b "$user_jar" -o /dev/null -w '%{http_code}' "$public_base/primeiro-acesso/")" = 200
+          csrf="$(awk '$6 == "csrftoken" {print $7}' "$user_jar")"
+          test "$(curl -ksS -b "$user_jar" -c "$user_jar" -H "Origin: $public_base" -H "X-CSRFToken: $csrf" -H 'Content-Type: application/json' -d '{"currentPassword":"Safe-Temporary-Password-789","newPassword":"A-New-Private-Password-456"}' -o /dev/null -w '%{http_code}' "$public_base/api/v1/account/password/")" = 200
+          test "$(curl -ksS -b "$user_jar" -o /dev/null -w '%{http_code}' "$public_base/api/v1/meetings/")" = 200
       - name: Permissões dos diretórios sensíveis no host
         run: |
           test "$(stat -c %a deploy/secrets)" = 700
