@@ -5,6 +5,7 @@
 ## Antes da mudança
 
 1. Registre versão/commit, imagens por digest, migrações pendentes, quantidade de reuniões e jobs ativos. Interrompa novos uploads; espere jobs terminarem ou cancele-os pelo painel. Não interrompa uma transcrição em andamento para atualizar imagens.
+   Confira antes que o Compose da pasta descreve **os mesmos contêineres em execução**. O backup agora compara os hashes de configuração e recusa drift antes de interromper serviços; não force um backup/upgrade com override TLS antigo omitido. Ele reinicia os contêineres originais, não aplica a configuração nova silenciosamente.
 2. Faça backup **frio** de PostgreSQL, volumes de mídia/TLS e `deploy/secrets/` com `deploy/backup.ps1 -EncryptedDestination ... -AcknowledgeProtectedStorage` ou `deploy/backup.sh --encrypted-destination ... --ack-protected-storage`. O destino deve ser cifrado e protegido: os scripts não criptografam o bundle. Guarde-o fora do host.
 3. Rode `deploy/restore-test.ps1 -BackupDirectory ...` ou `deploy/restore-test.sh ...` em clone isolado e confira reunião, segmentos, arquivo MP3, permissões e chave de IA. Um `pg_dump` sem mídia/chave não basta. Guarde o código/imagens da versão anterior para reversão.
 4. Teste a atualização no clone, inclusive imagem PostgreSQL. Versões **major** do PostgreSQL exigem plano de migração específico; a troca 16.6→16.15 ensaiada aqui foi apenas patch no major 16, com 1 reunião sintética.

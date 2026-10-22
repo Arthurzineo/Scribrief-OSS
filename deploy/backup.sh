@@ -19,12 +19,29 @@ case "$destination/" in "$root/"*) echo 'Backup deve ficar fora do projeto.' >&2
 backup="$destination/scribrief-beta-$(date +%Y%m%d-%H%M%S)"
 [[ ! -e "$backup" ]] || { echo 'Backup já existe.' >&2; exit 1; }
 compose() { docker compose --env-file "$root/deploy/beta.env" -f "$root/compose.beta.yaml" "$@"; }
+declare -A running
+for service in frontend backend worker beat db redis; do
+  container_id="$(compose ps -q "$service")"
+  [[ -n "$container_id" ]] || { echo "Serviço $service não está em execução; backup recusado." >&2; exit 1; }
+  expected_line="$(compose config --hash "$service")"
+  expected_hash="${expected_line##* }"
+  actual_hash="$(docker inspect "$container_id" --format '{{index .Config.Labels "com.docker.compose.config-hash"}}')"
+  [[ -n "$expected_hash" && "$expected_hash" == "$actual_hash" ]] || {
+    echo "Configuração de $service difere do contêiner ativo. Backup recusado antes de parar serviços; use o Compose da instalação ativa ou faça migração controlada." >&2
+    exit 1
+  }
+  running["$service"]="$container_id"
+done
 frontend_stopped=0
 jobs_stopped=0
 cleanup() {
   local status=$?
-  if ((jobs_stopped)); then compose up -d backend worker beat || echo 'Falha ao reiniciar jobs' >&2; fi
-  if ((frontend_stopped)); then compose up -d frontend || echo 'Falha ao reiniciar frontend' >&2; fi
+  if ((jobs_stopped)); then
+    for service in backend worker beat; do
+      docker start "${running[$service]}" >/dev/null || echo "Falha ao reiniciar contêiner original de $service" >&2
+    done
+  fi
+  if ((frontend_stopped)); then docker start "${running[frontend]}" >/dev/null || echo 'Falha ao reiniciar contêiner original do frontend' >&2; fi
   exit "$status"
 }
 trap cleanup EXIT
@@ -40,9 +57,9 @@ jobs_stopped=1
 umask 077
 mkdir -p -- "$backup/media" "$backup/secrets" "$backup/tls"
 compose exec -T db pg_dump -Fc -U scribrief -d scribrief -f /tmp/scribrief-beta.dump
-db_id="$(compose ps -q db)"
-worker_id="$(compose ps -q --all worker)"
-backend_id="$(compose ps -q --all backend)"
+db_id="${running[db]}"
+worker_id="${running[worker]}"
+backend_id="${running[backend]}"
 [[ -n "$db_id" && -n "$worker_id" && -n "$backend_id" ]] || { echo 'Banco, backend ou worker ausente.' >&2; exit 1; }
 docker cp "$db_id:/tmp/scribrief-beta.dump" "$backup/database.dump"
 docker cp "$worker_id:/app/dados/." "$backup/media"

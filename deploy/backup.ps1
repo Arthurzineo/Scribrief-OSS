@@ -20,6 +20,19 @@ function Compose([string[]]$Arguments) {
     & docker compose --env-file $envPath -f $composePath @Arguments
     if ($LASTEXITCODE -ne 0) { throw "docker compose $($Arguments[0]) falhou ($LASTEXITCODE)" }
 }
+$running = @{}
+foreach ($service in @('frontend', 'backend', 'worker', 'beat', 'db', 'redis')) {
+    $containerId = & docker compose --env-file $envPath -f $composePath ps -q $service
+    if ($LASTEXITCODE -ne 0 -or -not $containerId) { throw "Serviço $service não está em execução; backup recusado." }
+    $expectedLine = & docker compose --env-file $envPath -f $composePath config --hash $service
+    if ($LASTEXITCODE -ne 0 -or -not $expectedLine) { throw "Não foi possível verificar configuração de $service." }
+    $expectedHash = (($expectedLine | Select-Object -Last 1) -split '\s+')[-1]
+    $actualHash = & docker inspect $containerId --format '{{index .Config.Labels "com.docker.compose.config-hash"}}'
+    if ($LASTEXITCODE -ne 0 -or -not $actualHash -or $expectedHash -ne $actualHash.Trim()) {
+        throw "Configuração de $service difere do contêiner ativo. Backup recusado antes de parar serviços; use o Compose da instalação ativa ou faça migração controlada."
+    }
+    $running[$service] = $containerId.Trim()
+}
 $frontendStopped = $false
 $jobsStopped = $false
 Push-Location $root
@@ -34,9 +47,9 @@ try {
     $jobsStopped = $true
     New-Item -ItemType Directory -Path $backup, (Join-Path $backup 'media'), (Join-Path $backup 'secrets'), (Join-Path $backup 'tls') | Out-Null
     Compose @('exec', '-T', 'db', 'pg_dump', '-Fc', '-U', 'scribrief', '-d', 'scribrief', '-f', '/tmp/scribrief-beta.dump')
-    $dbId = & docker compose --env-file $envPath -f $composePath ps -q db
-    $workerId = & docker compose --env-file $envPath -f $composePath ps -q --all worker
-    $backendId = & docker compose --env-file $envPath -f $composePath ps -q --all backend
+    $dbId = $running['db']
+    $workerId = $running['worker']
+    $backendId = $running['backend']
     if (-not $dbId -or -not $workerId -or -not $backendId) { throw 'Contêiner de banco, backend ou worker não encontrado.' }
     & docker cp "${dbId}:/tmp/scribrief-beta.dump" (Join-Path $backup 'database.dump')
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao copiar dump PostgreSQL.' }
@@ -53,7 +66,15 @@ try {
     $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $backup 'manifest.json')
     Write-Output "Backup criado em $backup. Contém dados e segredos em claro; proteja-o e teste a restauração."
 } finally {
-    if ($jobsStopped) { try { Compose @('up', '-d', 'backend', 'worker', 'beat') } catch { Write-Warning "Falha ao reiniciar jobs: $_" } }
-    if ($frontendStopped) { try { Compose @('up', '-d', 'frontend') } catch { Write-Warning "Falha ao reiniciar frontend: $_" } }
+    if ($jobsStopped) {
+        foreach ($service in @('backend', 'worker', 'beat')) {
+            & docker start $running[$service] | Out-Null
+            if ($LASTEXITCODE -ne 0) { Write-Warning "Falha ao reiniciar contêiner original de $service." }
+        }
+    }
+    if ($frontendStopped) {
+        & docker start $running['frontend'] | Out-Null
+        if ($LASTEXITCODE -ne 0) { Write-Warning 'Falha ao reiniciar contêiner original do frontend.' }
+    }
     Pop-Location
 }
