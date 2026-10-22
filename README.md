@@ -89,7 +89,7 @@ As capturas abaixo mostram a interface real com **respostas de API simuladas e n
 - Mídia fica em **arquivos privados**, nunca em BLOB no banco. O original/vídeo é apagado após transcrição bem-sucedida; o áudio MP3 permanece. Excluir oculta a reunião; o admin pode restaurá-la em até **72 horas**, antes da purga. Backups seguem retenção própria.
 - Senhas usam hash, sessão HTTPS/CSRF e acesso por proprietário/setor são verificados no backend. Chaves OpenAI são cifradas por setor; logs ativos de ação/sistema são mantidos por **90 dias**. Os custos mostrados são **estimativas parciais**, não a fatura oficial.
 - Proteja `deploy/secrets/`, banco, volumes de mídia/TLS e backups. **O script de backup não cifra os arquivos**: use destino cifrado e ACL. Não execute `docker compose down -v`, pois isso remove volumes.
-- O beta **não está homologado para produção nem para a Internet**; ainda há riscos de imagem/dependências e testes operacionais pendentes. Faça backup e ensaie a restauração antes de dados reais. Veja [arquitetura e limites](ARCHITECTURE.md), [atualização/backup](UPGRADE.md) e [relato privado de vulnerabilidades](SECURITY.md).
+- O beta **não está homologado para produção nem para a Internet**; ainda há riscos de imagem/dependências e testes operacionais pendentes. Faça backup e ensaie a restauração antes de dados reais. Veja [notas da candidata alpha](RELEASE_NOTES.md), [arquitetura e limites](ARCHITECTURE.md), [atualização/backup](UPGRADE.md) e [relato privado de vulnerabilidades](SECURITY.md).
 
 ## Licença
 

@@ -46,7 +46,7 @@ function Compose([string[]]$Arguments) {
 Push-Location $root
 try {
     Compose @('config', '--quiet')
-    Compose @('build', 'backend')
+    Compose @('build', 'db', 'backend')
     if (Test-Path -LiteralPath (Join-Path $backup 'tls/current.pem')) {
         $tlsBundle = (Join-Path $backup 'tls/current.pem').Replace('\','/')
         Compose @('run', '--rm', '--no-deps', '--user', 'root', '--cap-add', 'CHOWN', '--cap-add', 'FOWNER', '--cap-add', 'DAC_OVERRIDE', '-v', "${tlsBundle}:/backup-tls/current.pem:ro", 'backend', 'python', '-m', 'apps.admin_panel.tls_bootstrap', '--bundle', '/backup-tls/current.pem')

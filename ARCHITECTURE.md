@@ -9,6 +9,7 @@
 - **Celery worker:** ffmpeg, transcrição, geração de ata/mapa, purga e tarefas assíncronas. Único componente aplicativo com saída ao provedor externo de IA.
 - **Celery Beat:** agendamento de tarefas periódicas, sem saída ao provedor externo.
 - **PostgreSQL:** usuários, reuniões, segmentos, atas, empregos, estado e auditoria; nenhum áudio/vídeo BLOB.
+- **Imagem PostgreSQL da alpha:** construída localmente a partir do PostgreSQL oficial 16.15/Alpine 3.24 fixado por digest. O utilitário Go `gosu` da base foi substituído por `su-exec` do Alpine e um wrapper que só aceita o usuário `postgres`, sem mudar major/schema/volume. Isso elimina os alertas Go do binário antigo no scan da candidata; não substitui backup/ensaio de upgrade.
 - **Valkey:** serviço de fila/cache compatível com o protocolo Redis; não é fonte autoritativa de reuniões.
 - **Volumes `media`/`pgdata`/`tls`:** mídia privada, dados relacionais e par HTTPS ativo, respectivamente. Todos devem constar do mesmo plano de recuperação.
 
@@ -24,4 +25,4 @@ Upload temporário não vai à IA antes de confirmação explícita. Processamen
 
 Não há modo offline; a autenticação é apenas por conta e senha locais. Custos de IA são estimados. O limite configurável de upload pode chegar a 5 GiB, mas carga/recuperação nesse extremo precisa de aceite operacional. Compose em host único não fornece alta disponibilidade. Um backup só é válido depois de restauração ensaiada, incluindo a chave de cifragem setorial e o TLS. O autoassinado inicial vence após 90 dias e precisa ser confiado pelos clientes ou substituído por CA corporativa; o servidor valida par, validade e SAN, **não** a cadeia de confiança do navegador. Firewall corporativo continua responsabilidade do operador.
 
-As bases Docker são fixadas por digest no pacote beta. A varredura Trivy preliminar ainda apontou vulnerabilidades críticas/altas no backend e no utilitário `gosu` da imagem PostgreSQL; não há aceite de produção. O operador deve atualizar/revalidar imagens e avaliar esses riscos antes de dados reais.
+As bases Docker são fixadas por digest no pacote beta. O PostgreSQL derivado remove os avisos do `gosu` no scan da candidata; o backend Debian ainda contém achados OS sem correção publicada para a base usada, inclusive `libxml2` classificado pelo Debian como problema menor de negação de serviço. Não há aceite de produção. Revalidar imagens exatas e avaliar o risco antes de dados reais.

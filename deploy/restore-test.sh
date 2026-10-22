@@ -22,7 +22,7 @@ secrets:
 EOF
 compose() { "${compose_base[@]}" -f "$overlay" "$@"; }
 compose config --quiet
-compose build backend
+compose build db backend
 if [[ -f "$backup/tls/current.pem" ]]; then
   compose run --no-deps --rm --user root --cap-add CHOWN --cap-add FOWNER --cap-add DAC_OVERRIDE \
     -v "$backup/tls/current.pem:/backup-tls/current.pem:ro" \
