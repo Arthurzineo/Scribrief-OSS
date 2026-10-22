@@ -93,4 +93,4 @@ As capturas abaixo mostram a interface real com **respostas de API simuladas e n
 
 ## Licença
 
-Código original sob [AGPL-3.0-only](LICENSE), com uso comercial permitido e obrigações de disponibilização do código-fonte correspondente aos usuários de uma versão modificada oferecida pela rede. Copyright © 2026 Arthur Gonçalves e contribuidores, na extensão dos direitos que detenham. Veja [avisos de terceiros](THIRD_PARTY_NOTICES.md). A publicação aberta permanece condicionada às verificações de segurança e proveniência pendentes.
+Código original sob [AGPL-3.0-only](LICENSE), com uso comercial permitido e obrigações de disponibilização do código-fonte correspondente aos usuários de uma versão modificada oferecida pela rede. Copyright © 2026 Arthur Gonçalves e contribuidores, na extensão dos direitos que detenham. O titular confirmou a autorização para publicar o frontend recebido como open source. Veja [avisos de terceiros](THIRD_PARTY_NOTICES.md). A publicação aberta ainda depende da revisão final de segurança e da árvore distribuída.
