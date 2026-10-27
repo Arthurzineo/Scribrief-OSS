@@ -31,6 +31,7 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             was_active = serializer.instance.is_active
             old_sector_id = serializer.instance.membership.sector_id
+            old_budget = str(serializer.instance.membership.monthly_ai_budget_usd)
             before = {
                 "username": serializer.instance.username,
                 "first_name": serializer.instance.first_name,
@@ -49,6 +50,8 @@ class UserAdminViewSet(viewsets.ModelViewSet):
                     "is_active_before": was_active, "is_active_after": user.is_active,
                     "sector_before": old_sector_id,
                     "sector_after": user.membership.sector_id,
+                    "monthly_ai_budget_before": old_budget,
+                    "monthly_ai_budget_after": str(user.membership.monthly_ai_budget_usd),
                     "password_changed": password_changed,
                     "profile_changes": describe_changes(before, {
                         "username": user.username, "first_name": user.first_name,

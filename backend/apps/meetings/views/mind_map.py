@@ -44,7 +44,7 @@ class MindMapMixin:
             })
         if meeting.minutes_stale:
             raise Conflict("A ata está desatualizada. Gere a ata novamente antes do mapa.")
-        _require_sector_key(meeting.sector_id, "mind_map")
+        _require_sector_key(meeting.sector_id, "mind_map", user_id=meeting.owner_id)
         with transaction.atomic():
             current = Meeting.objects.select_for_update().get(pk=meeting.pk)
             if current.deletion_requested_at is not None:

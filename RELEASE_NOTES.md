@@ -1,8 +1,12 @@
-# Scribrief — candidata 0.1.0-alpha.1
+# Scribrief — candidata 0.1.0-alpha.2
 
 **Distribuição prevista:** repositório de código-fonte AGPL-3.0-only para instalação **interna**, não imagens Docker pré-construídas. Não exponha a aplicação à Internet. O servidor precisa apenas de saída HTTPS à OpenAI para usar a IA; banco, broker e interface administrativa não devem ser públicos.
 
 ## Nesta candidata
+
+- Tetos mensais opcionais de IA por setor e usuário, reservas transacionais por tentativa, saldo administrativo e bloqueio de regeneração quando a cota está esgotada. Valores estimados não equivalem à fatura do provedor.
+- Um upload multipart em andamento por instalação, limite agregado de staging por usuário/instalação e piso de espaço livre, com recuperação conservadora após falha. Teto absoluto por arquivo de 5 GiB; staging expira em 2 horas.
+- DOMPurify transitivo atualizado para 3.4.17; regressões de orçamento/arquitetura corrigidas, contrato OpenAPI atualizado e novos testes PostgreSQL e PNG/PDF sintéticos em desktop/móvel.
 
 - Instalação Windows/PowerShell e Linux/Bash com Compose, HTTPS local autoassinado e conta inicial `ADMIN` cuja senha deve ser trocada antes de liberar o acesso LAN.
 - Contas locais, setores e chave OpenAI cifrada por setor; gravações e transcrições em arquivos privados, atas e mapas, compartilhamento somente leitura e transferência de propriedade dentro do setor.

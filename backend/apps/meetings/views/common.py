@@ -2,6 +2,7 @@
 from django.core.exceptions import ImproperlyConfigured
 
 from apps.accounts.secrets import SectorKeyUnavailable, sector_credential
+from apps.accounts.services.ai_budget import AIBudgetExceeded, check_budget_available
 
 from ..processing.ai_registry import (
     AIProviderConfigurationError,
@@ -36,10 +37,13 @@ def _speaker_analysis_payload(meeting, analysis):
     }
 
 
-def _require_sector_key(sector_id, operation="transcription_chunk"):
+def _require_sector_key(sector_id, operation="transcription_chunk", *, user_id=None):
     try:
         provider_id = selected_provider(capability_for_operation(operation))
         sector_credential(sector_id, provider_id)
+        check_budget_available(sector_id, user_id)
+    except AIBudgetExceeded as exc:
+        raise Conflict(str(exc)) from exc
     except SectorKeyUnavailable as exc:
         raise Conflict("Setor sem credencial do provedor de IA configurada.") from exc
     except AIProviderConfigurationError as exc:

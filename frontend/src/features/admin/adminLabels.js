@@ -23,6 +23,7 @@ const actions = {
   job_queued: 'Tarefa entrou na fila', job_started: 'Tarefa iniciada',
   job_completed: 'Tarefa concluída', job_failed: 'Tarefa falhou',
   job_cancelled: 'Tarefa cancelada',
+  ai_budget_denied: 'Chamada de IA bloqueada pelo teto mensal',
 };
 
 const outcomes = {

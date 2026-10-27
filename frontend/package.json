@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
+    "test:alpha": "node tests/alpha-resource-controls.e2e.mjs",
     "test:e2e": "node tests/e2e.mjs",
     "test:layout": "node tests/minutes-layout.e2e.mjs",
     "test:map": "node tests/mind-map.e2e.mjs",

@@ -79,7 +79,7 @@ class TranscriptionMixin:
             return Response(result, status=202 if result["status"] == "processing" else 200)
         if meeting.status not in (MeetingStatus.TRANSCRITO, MeetingStatus.ATA_PRONTA):
             raise Conflict("Transcrição indisponível para revisão.")
-        _require_sector_key(meeting.sector_id, "correction")
+        _require_sector_key(meeting.sector_id, "correction", user_id=meeting.owner_id)
         serializer = CorrectionRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         version = serializer.validated_data["version"]

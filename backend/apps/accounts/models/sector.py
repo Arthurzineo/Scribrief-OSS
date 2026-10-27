@@ -7,6 +7,9 @@ class Sector(models.Model):
     is_active = models.BooleanField(default=True)
     max_upload_minutes = models.PositiveIntegerField(null=True, blank=True)
     max_monthly_minutes_per_user = models.PositiveIntegerField(null=True, blank=True)
+    monthly_ai_budget_usd = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

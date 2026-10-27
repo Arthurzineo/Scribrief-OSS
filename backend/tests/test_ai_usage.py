@@ -4,8 +4,9 @@ from uuid import uuid4
 
 import pytest
 
+from apps.accounts.services.ai_budget import tracked_openai_call
 from apps.audit.models import AIUsageEvent
-from apps.audit.usage import estimate_cost, record_openai_usage, tracked_openai_call
+from apps.audit.usage import estimate_cost, record_openai_usage
 from apps.meetings.models import Meeting
 
 

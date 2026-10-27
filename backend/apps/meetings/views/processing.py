@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
@@ -47,7 +47,8 @@ def _accept_uploaded_media(meeting, request, duration):
     meeting.job_claimed = False
     meeting.job_started_at = None
     meeting.save(update_fields=[
-        "original_path", "original_name", "consent_confirmed_at", "staged_at",
+        "original_path", "original_name", "original_size_bytes",
+        "consent_confirmed_at", "staged_at",
         "job_id", "job_claimed", "job_started_at", "updated_at",
     ])
     accept_job(meeting, meeting.job_id, "transcription", duration)
@@ -102,7 +103,13 @@ def _dispatch_transcription(meeting, request, duration):
 class ProcessingMixin:
     @extend_schema(
         request=UploadSerializer,
-        responses={201: StagedUploadSerializer, 202: StatusSerializer},
+        description="Upload multipart com Content-Length; admissão de um envio por instalação.",
+        responses={
+            201: StagedUploadSerializer, 202: StatusSerializer,
+            411: OpenApiResponse(description="Content-Length obrigatório."),
+            413: OpenApiResponse(description="Arquivo acima do teto configurado (máximo 5 GiB)."),
+            429: OpenApiResponse(description="Slot de upload, quota de staging ou piso de disco."),
+        },
     )
     @action(
         detail=True,
@@ -112,7 +119,7 @@ class ProcessingMixin:
     )
     def upload(self, request, pk=None):
         meeting = self.get_object()
-        _require_sector_key(meeting.sector_id)
+        _require_sector_key(meeting.sector_id, user_id=meeting.owner_id)
         declared_size = request.META.get("CONTENT_LENGTH")
         if (
             declared_size
@@ -149,6 +156,7 @@ class ProcessingMixin:
                     )
                 relative_path = save_original(meeting, serializer.validated_data["file"])
                 meeting.original_path = relative_path
+                meeting.original_size_bytes = serializer.validated_data["file"].size
                 meeting.original_name = serializer.validated_data["file"].name[:255]
                 if serializer.validated_data["consent_confirmed"]:
                     try:
@@ -161,7 +169,8 @@ class ProcessingMixin:
                 else:
                     meeting.staged_at = timezone.now()
                     meeting.save(update_fields=[
-                        "original_path", "original_name", "staged_at", "updated_at",
+                        "original_path", "original_name", "original_size_bytes",
+                        "staged_at", "updated_at",
                     ])
                     record_audit(
                         request.user, "upload_staged", meeting.id, request=request,
@@ -190,7 +199,7 @@ class ProcessingMixin:
         meeting = self.get_object()
         serializer = ConfirmUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        _require_sector_key(meeting.sector_id)
+        _require_sector_key(meeting.sector_id, user_id=meeting.owner_id)
         with transaction.atomic():
             meeting = type(meeting).objects.select_for_update().get(pk=meeting.pk)
             if (meeting.deletion_requested_at is not None or meeting.staged_at is None
@@ -257,7 +266,8 @@ class ProcessingMixin:
             and meeting.segments.exists()
         ) or minutes_generation_stuck(meeting)
         _require_sector_key(
-            meeting.sector_id, "minutes" if retrying_minutes else "transcription_chunk"
+            meeting.sector_id, "minutes" if retrying_minutes else "transcription_chunk",
+            user_id=meeting.owner_id,
         )
         if (
             meeting.status == MeetingStatus.ERRO

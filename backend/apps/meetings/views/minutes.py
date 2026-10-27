@@ -32,7 +32,7 @@ class MinutesMixin:
     def minutes(self, request, pk=None):
         meeting = self.get_object()
         if request.method == "POST":
-            _require_sector_key(meeting.sector_id, "minutes")
+            _require_sector_key(meeting.sector_id, "minutes", user_id=meeting.owner_id)
             with transaction.atomic():
                 current = type(meeting).objects.select_for_update().get(pk=meeting.pk)
                 if current.deletion_requested_at is not None:

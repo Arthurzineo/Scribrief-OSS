@@ -14,4 +14,7 @@ class UserMembership(models.Model):
     session_version = models.PositiveIntegerField(default=0)
     must_change_password = models.BooleanField(default=False)
     bootstrap_local_only = models.BooleanField(default=False)
+    monthly_ai_budget_usd = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)

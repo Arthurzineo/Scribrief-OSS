@@ -8,6 +8,7 @@ test('códigos operacionais conhecidos são exibidos em português', () => {
   assert.equal(jobLabel('transcribing'), 'Transcrevendo');
   assert.equal(actionLabel('login'), 'Entrou no sistema');
   assert.equal(actionLabel('job_failed'), 'Tarefa falhou');
+  assert.equal(actionLabel('ai_budget_denied'), 'Chamada de IA bloqueada pelo teto mensal');
   assert.equal(outcomeLabel('failed'), 'Falhou');
   assert.equal(targetLabel('meeting'), 'Reunião');
   assert.equal(componentLabel('worker'), 'Processador de tarefas');

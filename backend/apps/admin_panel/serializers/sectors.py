@@ -12,7 +12,7 @@ class SectorAdminSerializer(serializers.ModelSerializer):
         model = Sector
         fields = [
             "id", "name", "slug", "is_active", "max_upload_minutes",
-            "max_monthly_minutes_per_user",
+            "max_monthly_minutes_per_user", "monthly_ai_budget_usd",
             "member_count", "created_at",
         ]
         read_only_fields = ["id", "member_count", "created_at"]
@@ -29,6 +29,11 @@ class SectorAdminSerializer(serializers.ModelSerializer):
                 "max_monthly_minutes_per_user": (
                     "Informe de 1 a 44640 minutos ou deixe sem limite."
                 )
+            })
+        budget = attrs.get("monthly_ai_budget_usd")
+        if budget is not None and not 0 < budget <= 1_000_000:
+            raise serializers.ValidationError({
+                "monthly_ai_budget_usd": "Informe de US$ 0,01 a US$ 1.000.000,00 ou deixe vazio."
             })
         sector = self.instance
         if sector and attrs.get("is_active") is False:

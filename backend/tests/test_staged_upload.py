@@ -29,6 +29,7 @@ def test_upload_waits_for_explicit_consent_before_any_job_or_quota(api, user, se
         assert staged.status_code == 201
         meeting.refresh_from_db()
         assert meeting.staged_at is not None
+        assert staged.data["expires_at"] - meeting.staged_at == timedelta(hours=2)
         assert meeting.consent_confirmed_at is None
         assert meeting.job_id is None
         assert (tmp_path / meeting.original_path).is_file()
@@ -109,6 +110,58 @@ def test_stale_staged_upload_is_purged_but_confirmed_upload_is_not(api, user, se
     assert not old_path.exists()
     assert not Meeting.objects.filter(pk=old.pk).exists()
     assert Meeting.objects.filter(pk=current.pk).exists()
+
+
+@pytest.mark.django_db
+def test_staged_media_remains_confirmable_until_two_hours(api, user, settings, tmp_path):
+    from apps.meetings.services.staged_upload import purge_stale_uploads
+
+    settings.MEDIA_ROOT = tmp_path
+    meeting = Meeting.objects.create(owner=user, title="Aguardando por 90 minutos")
+    with patch("apps.meetings.storage.probe_audio"):
+        assert api.post(
+            f"/api/v1/meetings/{meeting.id}/upload/",
+            {"file": clip(), "consent_confirmed": "false"}, format="multipart",
+        ).status_code == 201
+    Meeting.objects.filter(pk=meeting.pk).update(
+        staged_at=timezone.now() - timedelta(minutes=90)
+    )
+    assert purge_stale_uploads(now=timezone.now())["deleted"] == 0
+    with (
+        patch("apps.meetings.views.processing.duration_seconds", return_value=60),
+        patch("apps.meetings.transcription_jobs.enqueue_transcription"),
+    ):
+        response = api.post(
+            f"/api/v1/meetings/{meeting.id}/confirm-upload/",
+            {"consent_confirmed": True}, format="json",
+        )
+    assert response.status_code == 202
+
+
+def test_configured_upload_limit_never_exceeds_five_gib():
+    from config.upload_limits import configured_upload_bytes
+
+    assert configured_upload_bytes("5120") == 5 * 1024**3
+    assert configured_upload_bytes("10240") == 5 * 1024**3
+    assert configured_upload_bytes("256") == 256 * 1024**2
+    with pytest.raises(ValueError):
+        configured_upload_bytes("0")
+
+
+@pytest.mark.django_db
+def test_oversized_upload_is_rejected_without_saved_media_or_job(api, user, settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    settings.MAX_UPLOAD_BYTES = 64
+    meeting = Meeting.objects.create(owner=user, title="Acima do limite")
+    result = api.post(
+        f"/api/v1/meetings/{meeting.pk}/upload/",
+        {"file": clip(), "consent_confirmed": "false"}, format="multipart",
+    )
+    assert result.status_code in (400, 413)
+    meeting.refresh_from_db()
+    assert not meeting.original_path and meeting.staged_at is None
+    assert not ProcessingJob.objects.filter(meeting_id=meeting.pk).exists()
+    assert not list((tmp_path / "reunioes" / str(meeting.pk)).glob("original*"))
 
 
 @pytest.mark.django_db

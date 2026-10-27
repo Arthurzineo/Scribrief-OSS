@@ -39,6 +39,7 @@ class Meeting(models.Model):
     job_started_at = models.DateTimeField(null=True, blank=True)
     original_name = models.CharField(max_length=255, blank=True)
     original_path = models.CharField(max_length=500, blank=True)
+    original_size_bytes = models.PositiveBigIntegerField(default=0)
     audio_path = models.CharField(max_length=500, blank=True)
     consent_confirmed_at = models.DateTimeField(null=True, blank=True)
     staged_at = models.DateTimeField(null=True, blank=True, db_index=True)

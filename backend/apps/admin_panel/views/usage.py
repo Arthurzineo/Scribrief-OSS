@@ -2,18 +2,21 @@
 
 import uuid
 
-from django.db.models import Count, Max, Q, Sum
+from django.db.models import Case, Count, DecimalField, F, Max, Q, Sum, When
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from apps.accounts.models import Sector, UserMembership
+from apps.accounts.services.ai_budget import budget_snapshot
 from apps.admin_panel.permissions import ActiveStaff
-from apps.audit.models import AIUsageEvent
+from apps.audit.models import AIBudgetEntry, AIUsageEvent
 from apps.meetings.models import Meeting
 
 from ..filters import _positive_int
-from ..serializers.usage import UsageEventSerializer
+from ..serializers.usage import AIBudgetSnapshotSerializer, UsageEventSerializer
 
 
 class UsageAdminViewSet(viewsets.ReadOnlyModelViewSet):
@@ -36,6 +39,26 @@ class UsageAdminViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get("operation"):
             qs = qs.filter(operation=params["operation"][:40])
         return qs.order_by("-created_at", "-id")
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("sector_id", int, required=True),
+            OpenApiParameter("user_id", int, required=False),
+        ],
+        responses=AIBudgetSnapshotSerializer,
+    )
+    @action(detail=False, methods=["get"], pagination_class=None)
+    def budget(self, request):
+        sector_id = _positive_int(request.query_params.get("sector_id"), "sector_id")
+        user_raw = request.query_params.get("user_id")
+        user_id = _positive_int(user_raw, "user_id") if user_raw else None
+        if not Sector.objects.filter(pk=sector_id).exists():
+            raise ValidationError({"sector_id": "Setor não encontrado."})
+        if user_id and not UserMembership.objects.filter(
+            sector_id=sector_id, user_id=user_id
+        ).exists():
+            raise ValidationError({"user_id": "Usuário não pertence ao setor."})
+        return Response(AIBudgetSnapshotSerializer(budget_snapshot(sector_id, user_id)).data)
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
@@ -83,6 +106,21 @@ class UsageAdminViewSet(viewsets.ReadOnlyModelViewSet):
             page = list(grouped[:100])
         ids = [row["meeting_id"] for row in page]
         titles = dict(Meeting.objects.filter(id__in=ids).values_list("id", "title"))
+        budget_rows = AIBudgetEntry.objects.filter(
+            meeting_id__in=ids, pk__in=qs.values("budget_entry_id"),
+        ).values(
+            "meeting_id", "operation"
+        ).annotate(
+            local_budget_usd=Sum(Case(
+                When(status="reserved", then=F("reserved_usd")),
+                default=F("charged_usd"),
+                output_field=DecimalField(max_digits=18, decimal_places=8),
+            )),
+            unpriced_calls=Count("id", filter=Q(status="unpriced")),
+        )
+        budget_by_operation = {
+            (row["meeting_id"], row["operation"]): row for row in budget_rows
+        }
         breakdown = qs.filter(meeting_id__in=ids).values(
             "meeting_id", "operation"
         ).annotate(
@@ -92,11 +130,15 @@ class UsageAdminViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by("operation")
         operations = {meeting_id: [] for meeting_id in ids}
         for row in breakdown:
+            budget_row = budget_by_operation.get((row["meeting_id"], row["operation"]))
             operations[row["meeting_id"]].append({
                 "operation": row["operation"], "calls": row["calls"],
                 "estimated_usd": row["known_cost_usd"],
                 "unpriced_calls": row["unpriced_calls"],
                 "failed_calls": row["failed_calls"],
+                "local_budget_usd": (
+                    budget_row["local_budget_usd"] if budget_row else None
+                ),
             })
         results = [{
             "meeting_id": str(row["meeting_id"]),
@@ -105,6 +147,14 @@ class UsageAdminViewSet(viewsets.ReadOnlyModelViewSet):
             "estimated_usd": row["known_cost_usd"],
             "unpriced_calls": row["unpriced_calls"],
             "failed_calls": row["failed_calls"],
+            "local_budget_usd": sum(
+                (item["local_budget_usd"] or 0) for item in operations[row["meeting_id"]]
+            ),
+            "budget_unpriced_calls": sum(
+                budget_by_operation.get((row["meeting_id"], item["operation"]), {}).get(
+                    "unpriced_calls", 0
+                ) for item in operations[row["meeting_id"]]
+            ),
             "latest_at": row["latest_at"],
             "operations": operations[row["meeting_id"]],
         } for row in page]

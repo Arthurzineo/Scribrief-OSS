@@ -774,6 +774,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsageEvent'
           description: ''
+  /api/admin/usage/budget/:
+    get:
+      operationId: admin_usage_budget_retrieve
+      parameters:
+      - in: query
+        name: sector_id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: user_id
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIBudgetSnapshot'
+          description: ''
   /api/admin/usage/meetings/:
     get:
       operationId: admin_usage_meetings_retrieve
@@ -1838,6 +1862,7 @@ paths:
   /api/v1/meetings/{id}/upload/:
     post:
       operationId: v1_meetings_upload_create
+      description: Upload multipart com Content-Length; admissão de um envio por instalação.
       parameters:
       - in: path
         name: id
@@ -1872,6 +1897,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Status'
           description: ''
+        '411':
+          description: Content-Length obrigatório.
+        '413':
+          description: Arquivo acima do teto configurado (máximo 5 GiB).
+        '429':
+          description: Slot de upload, quota de staging ou piso de disco.
   /api/v1/csrf/:
     get:
       tags:
@@ -2241,6 +2272,49 @@ paths:
                 - error
 components:
   schemas:
+    AIBudgetSnapshot:
+      type: object
+      properties:
+        period:
+          type: string
+        sector_id:
+          type: integer
+        sector_limit_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+        sector_used_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,8})?$
+        sector_remaining_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,8})?$
+          nullable: true
+        user_id:
+          type: integer
+        user_limit_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+        user_used_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,8})?$
+        user_remaining_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,8})?$
+          nullable: true
+      required:
+      - period
+      - sector_id
+      - sector_limit_usd
+      - sector_remaining_usd
+      - sector_used_usd
     AdminUser:
       type: object
       properties:
@@ -2291,6 +2365,11 @@ components:
         must_change_password:
           type: boolean
           readOnly: true
+        monthly_ai_budget_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
         monthly_used_seconds:
           type: string
           nullable: true
@@ -2901,6 +2980,11 @@ components:
         must_change_password:
           type: boolean
           readOnly: true
+        monthly_ai_budget_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
         monthly_used_seconds:
           type: string
           nullable: true
@@ -3010,6 +3094,11 @@ components:
           minimum: 0
           format: int64
           nullable: true
+        monthly_ai_budget_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
         member_count:
           type: integer
           readOnly: true
@@ -3104,6 +3193,11 @@ components:
           maximum: 9223372036854775807
           minimum: 0
           format: int64
+          nullable: true
+        monthly_ai_budget_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
           nullable: true
         member_count:
           type: integer

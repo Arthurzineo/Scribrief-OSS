@@ -15,7 +15,7 @@ from ..storage import delete_media
 from .common import Conflict
 
 logger = logging.getLogger(__name__)
-STAGED_UPLOAD_TTL = timedelta(hours=1)
+STAGED_UPLOAD_TTL = timedelta(hours=2)
 EMPTY_DRAFT_TTL = timedelta(hours=4)
 BATCH_SIZE = 100
 

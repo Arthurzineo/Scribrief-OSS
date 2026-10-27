@@ -48,6 +48,7 @@ class SectorAdminViewSet(viewsets.ModelViewSet):
                 "max_monthly_minutes_per_user": (
                     serializer.instance.max_monthly_minutes_per_user
                 ),
+                "monthly_ai_budget_usd": str(serializer.instance.monthly_ai_budget_usd),
             }
             sector = serializer.save()
             record_audit(
@@ -58,6 +59,7 @@ class SectorAdminViewSet(viewsets.ModelViewSet):
                     "is_active": sector.is_active,
                     "max_upload_minutes": sector.max_upload_minutes,
                     "max_monthly_minutes_per_user": sector.max_monthly_minutes_per_user,
+                    "monthly_ai_budget_usd": str(sector.monthly_ai_budget_usd),
                 })},
             )
 

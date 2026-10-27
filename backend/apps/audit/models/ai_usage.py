@@ -6,6 +6,9 @@ class AIUsageEvent(models.Model):
     """One external call, attributed at call time; survives meeting deletion."""
 
     sector = models.ForeignKey("accounts.Sector", on_delete=models.PROTECT)
+    budget_entry = models.ForeignKey(
+        "audit.AIBudgetEntry", null=True, on_delete=models.SET_NULL
+    )
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
     )

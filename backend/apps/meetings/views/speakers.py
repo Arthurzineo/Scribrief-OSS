@@ -136,7 +136,7 @@ class SpeakersMixin:
             return Response(result, status=202 if result["status"] == "processing" else 200)
         if meeting.status not in (MeetingStatus.TRANSCRITO, MeetingStatus.ATA_PRONTA):
             raise Conflict("Transcrição indisponível para análise.")
-        _require_sector_key(meeting.sector_id, "speaker_reconciliation")
+        _require_sector_key(meeting.sector_id, "speaker_reconciliation", user_id=meeting.owner_id)
         serializer = SpeakerSuggestionsRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         version = serializer.validated_data["version"]

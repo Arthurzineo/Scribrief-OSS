@@ -7,6 +7,10 @@ function usd(value) {
   return value == null ? 'Indisponível' : `US$ ${Number(value).toFixed(8)}`;
 }
 
+function usdBudget(value) {
+  return value == null ? 'Sem teto' : `US$ ${Number(value).toFixed(2)}`;
+}
+
 function usageSummary(usage) {
   if (!usage || typeof usage !== 'object') return 'Indisponível';
   const parts = [];
@@ -35,6 +39,8 @@ export default function AdminUsagePanel({ sectors, users }) {
   const [meetingCount, setMeetingCount] = useState(0);
   const [error, setError] = useState('');
   const [meetingError, setMeetingError] = useState('');
+  const [budget, setBudget] = useState(null);
+  const [budgetError, setBudgetError] = useState('');
 
   async function load(targetPage = 1, selected = filter) {
     setError('');
@@ -45,6 +51,14 @@ export default function AdminUsagePanel({ sectors, users }) {
       ]);
       setSummary(overview); setEvents(list.results || []); setPage(targetPage); setNext(Boolean(list.next));
     } catch (err) { setError(err.message); }
+    const sectorId = selected.sector_id || users.find((item) => String(item.id) === String(selected.user_id))?.sector_id;
+    if (!sectorId) { setBudget(null); setBudgetError(''); return; }
+    try {
+      const status = await request('GET', '/api/admin/usage/budget/', {
+        query: { sector_id: sectorId, user_id: selected.user_id || undefined },
+      });
+      setBudget(status); setBudgetError('');
+    } catch (err) { setBudget(null); setBudgetError(err.message); }
   }
   async function loadMeetings(targetPage = 1, selected = filter) {
     setMeetingError('');
@@ -74,6 +88,13 @@ export default function AdminUsagePanel({ sectors, users }) {
       <TextField label="ID da reunião" value={filter.meeting_id} onChange={(e) => setFilter({ ...filter, meeting_id: e.target.value })} />
       <Button type="submit" variant="primary">Filtrar</Button>
     </form>
+    {budgetError ? <InlineNotice tone="erro">Orçamento: {budgetError}</InlineNotice> : null}
+    {budget ? <section className="admin-meeting-costs" aria-label="Orçamento mensal de IA">
+      <h3 className="t-sub">Orçamento estimado de IA em {budget.period}</h3>
+      <p>Setor: {usdBudget(budget.sector_used_usd)} utilizado · teto {usdBudget(budget.sector_limit_usd)} · restante {usdBudget(budget.sector_remaining_usd)}</p>
+      {budget.user_id ? <p>Usuário: {usdBudget(budget.user_used_usd)} utilizado · teto {usdBudget(budget.user_limit_usd)} · restante {usdBudget(budget.user_remaining_usd)}</p> : null}
+      <p className="muted">O teto usa estimativas locais e reservas de chamadas sem preço; não corresponde necessariamente à fatura do provedor.</p>
+    </section> : <p className="muted">Selecione um setor ou usuário para ver o orçamento mensal.</p>}
     {error ? <InlineNotice tone="erro">{error}</InlineNotice> : null}
     {summary ? <><div className="admin-stats">
       <div><strong>{summary.totals.calls}</strong><span>chamadas</span></div>
@@ -91,9 +112,9 @@ export default function AdminUsagePanel({ sectors, users }) {
       {meetingError ? <InlineNotice tone="erro">{meetingError}</InlineNotice> : null}
       {meetings.length ? meetings.map((meeting) => <details key={meeting.meeting_id} className="admin-meeting-cost">
         <summary><span><strong>{meeting.title || 'Reunião removida'}</strong><small className="mono">{meeting.meeting_id}</small></span>
-          <span><strong>{meeting.unpriced_calls ? 'Soma conhecida' : 'Total estimado'}: {usd(meeting.estimated_usd)}</strong><small>{meeting.calls} chamadas · {meeting.unpriced_calls} sem valor · {meeting.failed_calls} falhas</small></span></summary>
-        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Operação</th><th>Chamadas</th><th>Sem valor</th><th>Falhas</th><th>Soma estimada conhecida</th></tr></thead><tbody>
-          {meeting.operations.map((operation) => <tr key={operation.operation}><td>{operationLabels[operation.operation] || jobLabel(operation.operation)}</td><td>{operation.calls}</td><td>{operation.unpriced_calls}</td><td>{operation.failed_calls}</td><td>{usd(operation.estimated_usd)}</td></tr>)}
+          <span><strong>{meeting.unpriced_calls ? 'Soma conhecida' : 'Total estimado'}: {usd(meeting.estimated_usd)}</strong><small>{meeting.calls} chamadas · {meeting.unpriced_calls} sem valor · {meeting.failed_calls} falhas · cota local usada/reservada: {usd(meeting.local_budget_usd)}</small></span></summary>
+        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Operação</th><th>Chamadas</th><th>Sem valor</th><th>Falhas</th><th>Soma estimada conhecida</th><th>Cota local usada/reservada</th></tr></thead><tbody>
+          {meeting.operations.map((operation) => <tr key={operation.operation}><td>{operationLabels[operation.operation] || jobLabel(operation.operation)}</td><td>{operation.calls}</td><td>{operation.unpriced_calls}</td><td>{operation.failed_calls}</td><td>{usd(operation.estimated_usd)}</td><td>{usd(operation.local_budget_usd)}</td></tr>)}
         </tbody></table></div>
       </details>) : !meetingError ? <p className="muted">Nenhuma chamada de IA para os filtros selecionados.</p> : null}
       <div className="admin-actions"><Button disabled={meetingPage <= 1} onClick={() => loadMeetings(meetingPage - 1)}>Anterior</Button><span>Página {meetingPage} · {meetingCount} reuniões</span><Button disabled={!meetingNext} onClick={() => loadMeetings(meetingPage + 1)}>Próxima</Button></div>

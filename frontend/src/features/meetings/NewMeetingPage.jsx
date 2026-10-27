@@ -118,7 +118,7 @@ export default function NewMeetingPage() {
       </div>
       {error ? <InlineNotice tone="erro">{error}</InlineNotice> : null}
       <InlineNotice>{stagedId
-        ? 'Arquivo recebido em área privada temporária. Nenhuma transcrição foi iniciada. Confirme abaixo para continuar; sem confirmação, o arquivo será descartado ao sair ou em até cerca de 65 minutos.'
+        ? 'Arquivo recebido em área privada temporária. Nenhuma transcrição foi iniciada. Confirme abaixo para continuar; sem confirmação, o arquivo expira após 2 horas e a limpeza periódica o remove em até cerca de 5 minutos adicionais. Ao sair, tentamos descartá-lo imediatamente.'
         : 'O arquivo será enviado primeiro para área privada temporária. O áudio só será enviado ao serviço externo após sua confirmação.'}</InlineNotice>
       <label className="consent-control">
         <input type="checkbox" checked={consent} disabled={!stagedId || confirming} onChange={(e) => setConsent(e.target.checked)} />

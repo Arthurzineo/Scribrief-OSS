@@ -136,15 +136,15 @@ def test_all_three_openai_calls_use_context_system_prompt_without_changing_schem
         patch("apps.meetings.processing.corrections._client", return_value=fake_client),
         patch(
             "apps.meetings.processing.providers.tracked_openai_call",
-            side_effect=lambda call, *args: call(),
+            side_effect=lambda call, *args, **kwargs: call(),
         ),
         patch(
             "apps.meetings.processing.mind_map.tracked_openai_call",
-            side_effect=lambda call, *args: call(),
+            side_effect=lambda call, *args, **kwargs: call(),
         ),
         patch(
             "apps.meetings.processing.corrections.tracked_openai_call",
-            side_effect=lambda call, *args: call(),
+            side_effect=lambda call, *args, **kwargs: call(),
         ),
     ):
         OpenAIMinutesProvider("key", {"system_prompt": "Ata customizada"}).generate("Texto")

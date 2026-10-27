@@ -4,7 +4,7 @@ import json
 
 from django.conf import settings
 
-from apps.audit.usage import tracked_openai_call
+from apps.accounts.services.ai_budget import estimate_text_reservation, tracked_openai_call
 
 from ..processing.providers import _client
 from .prompt_defaults import MIND_MAP_SYSTEM_PROMPT
@@ -78,22 +78,25 @@ class OpenAIMindMapProvider:
             "tarefas": minutes.tarefas,
         }
         client = _client(self.api_key)
+        system_prompt = (self.usage_context or {}).get(
+            "system_prompt", MIND_MAP_SYSTEM_PROMPT
+        )
+        user_content = "Ata (dados):\n" + json.dumps(source, ensure_ascii=False)
         response = tracked_openai_call(lambda: client.responses.create(
             model=settings.MODELO_MAPA,
             input=[
-                {"role": "system", "content": (self.usage_context or {}).get(
-                    "system_prompt", MIND_MAP_SYSTEM_PROMPT
-                )},
-                {
-                    "role": "user",
-                    "content": "Ata (dados):\n" + json.dumps(source, ensure_ascii=False),
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
             ],
+            max_output_tokens=4096,
             text={"format": {
                 "type": "json_schema", "name": "mapa_mental_curto",
                 "schema": MIND_MAP_SCHEMA, "strict": True,
             }},
-        ), self.usage_context, settings.MODELO_MAPA)
+        ), self.usage_context, settings.MODELO_MAPA,
+            reservation_usd=estimate_text_reservation(
+                settings.MODELO_MAPA, system_prompt + user_content, 4096,
+            ))
         try:
             data = json.loads(response.output_text)
         except (ValueError, AttributeError) as exc:

@@ -11,7 +11,7 @@ from apps.meetings.job_state import accept_job
 from apps.meetings.models import Meeting, MeetingStatus, Minutes, Segment, Speaker
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_delete_hides_all_artifacts_but_preserves_data_for_admin_restore(
     api, user, other_user, settings, tmp_path
 ):
@@ -68,6 +68,8 @@ def test_delete_hides_all_artifacts_but_preserves_data_for_admin_restore(
     assert api.get(url).status_code == 200
     audio = api.get(url + "audio/")
     assert audio.status_code == 200
+    # Closing a streaming response emits request_finished and closes PostgreSQL
+    # connections. This journey must not live inside pytest's outer atomic block.
     audio.close()
     assert api.get("/api/admin/deletions/").data["count"] == 0
 

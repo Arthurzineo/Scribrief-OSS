@@ -94,3 +94,7 @@ As capturas abaixo mostram a interface real com **respostas de API simuladas e n
 ## Licença
 
 Código original sob [AGPL-3.0-only](LICENSE), com uso comercial permitido e obrigações de disponibilização do código-fonte correspondente aos usuários de uma versão modificada oferecida pela rede. Copyright © 2026 Arthur Gonçalves e contribuidores, na extensão dos direitos que detenham. O titular confirmou a autorização para publicar o frontend recebido como open source. Veja [avisos de terceiros](THIRD_PARTY_NOTICES.md). A publicação aberta ainda depende da revisão final de segurança e da árvore distribuída.
+
+## Orçamento e envios da candidata alpha.2
+
+No painel, Setores/Usuários permitem teto mensal estimado de IA em US$; vazio deixa sem teto local. Custos e uso mostra saldo ao filtrar setor/pessoa. Isso não substitui a fatura ou limites do provedor. Há um upload em andamento por instalação; novos envios podem retornar 429 até ele terminar. Staging privado sem confirmação expira em 2 horas. As quotas iniciais são 20 GiB globais/10 GiB por usuário e piso de 1 GiB livre, configuráveis pelas variáveis públicas de `deploy/beta.env.example`. Teto por arquivo de no máximo 5 GiB. Consulte [arquitetura e limites](ARCHITECTURE.md) e [atualização](UPGRADE.md) antes de trocar uma instalação existente.

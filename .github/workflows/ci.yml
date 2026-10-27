@@ -19,6 +19,17 @@ jobs:
 
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine3.24@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        env:
+          POSTGRES_DB: scribrief_ci
+          POSTGRES_USER: scribrief_ci
+          POSTGRES_PASSWORD: synthetic-ci-only-not-a-deployment-secret
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U scribrief_ci -d scribrief_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,6 +48,16 @@ jobs:
           DJANGO_TESTING: '1'
       - run: uv run ruff check .
         working-directory: backend
+      - name: Suíte e concorrência real no PostgreSQL isolado
+        run: uv run pytest -q --tb=short
+        working-directory: backend
+        env:
+          DJANGO_TESTING: '1'
+          DATABASE_HOST: '127.0.0.1'
+          DATABASE_PORT: '5432'
+          DATABASE_NAME: scribrief_ci
+          DATABASE_USER: scribrief_ci
+          DATABASE_PASSWORD: synthetic-ci-only-not-a-deployment-secret
       - run: uv run python manage.py spectacular --validate --file openapi.yaml
         working-directory: backend
         env:
@@ -58,6 +79,11 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - name: Orçamento administrativo e exportações PNG/PDF sintéticas
+        run: npm run test:alpha
+        working-directory: frontend
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
       - run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
 

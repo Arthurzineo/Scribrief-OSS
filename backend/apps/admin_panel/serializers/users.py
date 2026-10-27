@@ -20,6 +20,10 @@ class AdminUserSerializer(serializers.ModelSerializer):
     must_change_password = serializers.BooleanField(
         source="membership.must_change_password", read_only=True,
     )
+    monthly_ai_budget_usd = serializers.DecimalField(
+        source="membership.monthly_ai_budget_usd", max_digits=12, decimal_places=2,
+        allow_null=True, required=False,
+    )
     monthly_used_seconds = serializers.SerializerMethodField()
     monthly_upload_count = serializers.SerializerMethodField()
 
@@ -40,7 +44,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "first_name", "last_name", "email", "is_active",
             "is_staff", "sector_id", "sector_name", "password",
-            "must_change_password",
+            "must_change_password", "monthly_ai_budget_usd",
             "monthly_used_seconds", "monthly_upload_count",
         ]
         read_only_fields = [
@@ -58,6 +62,11 @@ class AdminUserSerializer(serializers.ModelSerializer):
                 validate_password(password, user=self.instance)
             except DjangoValidationError as exc:
                 raise serializers.ValidationError({"password": exc.messages}) from exc
+        budget = attrs.get("membership", {}).get("monthly_ai_budget_usd")
+        if budget is not None and not 0 < budget <= 1_000_000:
+            raise serializers.ValidationError({
+                "monthly_ai_budget_usd": "Informe de US$ 0,01 a US$ 1.000.000,00 ou deixe vazio."
+            })
         if self.instance is not None:
             if self.instance.is_staff:
                 raise PermissionDenied("Contas administrativas não são alteradas por esta API.")
@@ -71,12 +80,16 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        sector = validated_data.pop("membership")["sector"]
+        membership_data = validated_data.pop("membership")
+        sector = membership_data["sector"]
         password = validated_data.pop("password")
         user = get_user_model()(**validated_data)
         user.set_password(password)
         user.save()
-        UserMembership.objects.create(user=user, sector=sector, must_change_password=True)
+        UserMembership.objects.create(
+            user=user, sector=sector, must_change_password=True,
+            monthly_ai_budget_usd=membership_data.get("monthly_ai_budget_usd"),
+        )
         return user
 
     @transaction.atomic
@@ -90,8 +103,12 @@ class AdminUserSerializer(serializers.ModelSerializer):
         instance.save()
         fields = []
         if membership:
-            instance.membership.sector = membership["sector"]
-            fields.append("sector")
+            if "sector" in membership:
+                instance.membership.sector = membership["sector"]
+                fields.append("sector")
+            if "monthly_ai_budget_usd" in membership:
+                instance.membership.monthly_ai_budget_usd = membership["monthly_ai_budget_usd"]
+                fields.append("monthly_ai_budget_usd")
         if password:
             instance.membership.must_change_password = True
             fields.append("must_change_password")

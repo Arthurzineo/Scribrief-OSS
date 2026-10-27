@@ -7,3 +7,5 @@ from .processing import SpeakerAnalysis as SpeakerAnalysis
 from .transcription import Segment as Segment
 from .transcription import Speaker as Speaker
 from .transcription import TranscriptionChunk as TranscriptionChunk
+from .upload_capacity import UploadGate as UploadGate
+from .upload_capacity import UploadLease as UploadLease

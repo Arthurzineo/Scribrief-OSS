@@ -10,6 +10,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .openapi import AUTH_PATHS
 from .runtime_secrets import read_secret
+from .upload_limits import configured_upload_bytes
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TESTING = os.getenv("DJANGO_TESTING") == "1"
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     "config.middleware.SessionVersionMiddleware",
     "apps.audit.middleware.MutationAuditMiddleware",
     "config.middleware.InitialPasswordMiddleware",
+    "apps.meetings.services.upload_capacity.UploadCapacityMiddleware",
     "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -142,7 +144,13 @@ MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", BASE_DIR / "media")).resolve()
 FILE_UPLOAD_TEMP_DIR = str(MEDIA_ROOT / "tmp") if os.getenv("DATABASE_HOST") else None
 if FILE_UPLOAD_TEMP_DIR:
     Path(FILE_UPLOAD_TEMP_DIR).mkdir(parents=True, exist_ok=True, mode=0o700)
-MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_MB", "5120")) * 1024 * 1024
+MAX_UPLOAD_BYTES = configured_upload_bytes(os.getenv("MAX_UPLOAD_MB", "5120"))
+MAX_INFLIGHT_UPLOADS = 1  # leaves two of the three synchronous HTTP workers available
+STAGED_UPLOAD_MAX_BYTES = int(os.getenv("STAGED_UPLOAD_MAX_MB", "20480")) * 1024**2
+STAGED_UPLOAD_MAX_BYTES_PER_USER = int(os.getenv("STAGED_UPLOAD_USER_MAX_MB", "10240")) * 1024**2
+MEDIA_MIN_FREE_BYTES = int(os.getenv("MEDIA_MIN_FREE_MB", "1024")) * 1024**2
+if min(STAGED_UPLOAD_MAX_BYTES, STAGED_UPLOAD_MAX_BYTES_PER_USER) <= 0 or MEDIA_MIN_FREE_BYTES < 0:
+    raise ImproperlyConfigured("Invalid staging capacity limits")
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 FILE_UPLOAD_HANDLERS = [

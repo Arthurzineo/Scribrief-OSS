@@ -69,7 +69,7 @@ def estimate_cost(model, usage):
 def record_ai_attempt(
     *, context, provider_id, model, usage=None, outcome="success",
     estimated_usd=None, estimate_status="unavailable", pricing_version="",
-    request_id="", error_type="", source_label="",
+    request_id="", error_type="", source_label="", budget_entry=None,
 ):
     """Provider-neutral ledger boundary; callers pass only sanitized usage units."""
     if not context:
@@ -110,6 +110,7 @@ def record_ai_attempt(
         with transaction.atomic():
             AIUsageEvent.objects.create(
                 sector_id=context["sector_id"], requested_by_id=context["user_id"],
+                budget_entry=budget_entry,
                 meeting_id=context["meeting_id"], job_id=context.get("job_id"),
                 operation=context["operation"], provider_id=provider_id, model=model,
                 key_version=context["key_version"], request_id=str(request_id)[:100],
@@ -130,7 +131,7 @@ def record_ai_attempt(
         logger.exception("Could not persist AI usage event")
 
 
-def record_openai_usage(response, context, model, source_label=""):
+def record_openai_usage(response, context, model, source_label="", budget_entry=None):
     """Best effort: accounting failure must not corrupt successful AI results."""
     usage = _usage_dict(response)
     amount, status, version = estimate_cost(model, usage)
@@ -138,10 +139,11 @@ def record_openai_usage(response, context, model, source_label=""):
         context=context, provider_id="openai", model=model, usage=usage,
         estimated_usd=amount, estimate_status=status, pricing_version=version,
         request_id=getattr(response, "_request_id", "") or "", source_label=source_label,
+        budget_entry=budget_entry,
     )
 
 
-def record_openai_failure(error, context, model, source_label=""):
+def record_openai_failure(error, context, model, source_label="", budget_entry=None):
     """Record an attempted external call, without assuming a failed request is free.
 
     Never persist the exception message: it can contain a URL, credential or payload.
@@ -150,15 +152,5 @@ def record_openai_failure(error, context, model, source_label=""):
         context=context, provider_id="openai", model=model, outcome="failed",
         request_id=getattr(error, "request_id", "") or "",
         error_type=type(error).__name__, source_label=source_label,
+        budget_entry=budget_entry,
     )
-
-
-def tracked_openai_call(call, context, model, source_label=""):
-    """One ledger event per SDK attempt (SDK retries are disabled in _client)."""
-    try:
-        response = call()
-    except Exception as exc:
-        record_openai_failure(exc, context, model, source_label)
-        raise
-    record_openai_usage(response, context, model, source_label)
-    return response

@@ -5,6 +5,11 @@ from django.core.files.uploadhandler import FileUploadHandler, StopUpload
 class SizeLimitUploadHandler(FileUploadHandler):
     """Abort streaming as soon as the configured file limit is crossed."""
 
+    def handle_raw_input(self, input_data, META, content_length, boundary, encoding=None):
+        from apps.meetings.services.upload_capacity import admit_multipart
+
+        admit_multipart(self.request, content_length)
+
     def new_file(self, *args, **kwargs):
         super().new_file(*args, **kwargs)
         self.bytes_seen = 0
