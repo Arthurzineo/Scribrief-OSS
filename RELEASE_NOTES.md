@@ -1,8 +1,10 @@
-# Scribrief — candidata 0.1.0-alpha.2
+# Scribrief — candidato posterior à 0.1.0-alpha.2
 
 **Distribuição prevista:** repositório de código-fonte AGPL-3.0-only para instalação **interna**, não imagens Docker pré-construídas. Não exponha a aplicação à Internet. O servidor precisa apenas de saída HTTPS à OpenAI para usar a IA; banco, broker e interface administrativa não devem ser públicos.
 
 ## Nesta candidata
+
+- Evolução posterior à release alpha.2: opção administrativa explícita **Sem teto mensal de IA** por setor/usuário, removível/restaurável sem apagar consumo. Apenas estimativa local, sem integração com Costs API. Os artefatos já publicados da alpha.2 não são substituídos por esta evolução do candidato.
 
 - Tetos mensais opcionais de IA por setor e usuário, reservas transacionais por tentativa, saldo administrativo e bloqueio de regeneração quando a cota está esgotada. Valores estimados não equivalem à fatura do provedor.
 - Um upload multipart em andamento por instalação, limite agregado de staging por usuário/instalação e piso de espaço livre, com recuperação conservadora após falha. Teto absoluto por arquivo de 5 GiB; staging expira em 2 horas.

@@ -12,9 +12,10 @@ import AdminHealthPanel from './AdminHealthPanel.jsx';
 import SectorPromptPanel from './SectorPromptPanel.jsx';
 import AdminTlsPanel from './AdminTlsPanel.jsx';
 import InitialPasswordPanel from '../accounts/InitialPasswordPanel.jsx';
+import AIBudgetField from './AIBudgetField.jsx';
 
-const emptySector = { name: '', slug: '', is_active: true, max_upload_minutes: '', max_monthly_minutes_per_user: '', monthly_ai_budget_usd: '' };
-const emptyUser = { username: '', first_name: '', last_name: '', email: '', sector_id: '', password: '', monthly_ai_budget_usd: '' };
+const emptySector = { name: '', slug: '', is_active: true, max_upload_minutes: '', max_monthly_minutes_per_user: '', monthly_ai_budget_usd: null };
+const emptyUser = { username: '', first_name: '', last_name: '', email: '', sector_id: '', password: '', monthly_ai_budget_usd: null };
 
 export default function AdminPage() {
   const { user, ready, logout } = useAuth();
@@ -86,8 +87,7 @@ export default function AdminPage() {
           ? null : Number(sectorForm.max_upload_minutes),
         max_monthly_minutes_per_user: sectorForm.max_monthly_minutes_per_user === ''
           ? null : Number(sectorForm.max_monthly_minutes_per_user),
-        monthly_ai_budget_usd: sectorForm.monthly_ai_budget_usd === ''
-          ? null : sectorForm.monthly_ai_budget_usd,
+        monthly_ai_budget_usd: sectorForm.monthly_ai_budget_usd,
       } });
       if (selectedSector?.id === saved.id) setSelectedSector(saved);
       if (selectedAiSector?.id === saved.id) setSelectedAiSector(saved);
@@ -101,8 +101,7 @@ export default function AdminPage() {
       const method = userForm.id ? 'PATCH' : 'POST';
       const path = userForm.id ? `/api/admin/users/${userForm.id}/` : '/api/admin/users/';
       const payload = { ...userForm, sector_id: Number(userForm.sector_id) };
-      payload.monthly_ai_budget_usd = userForm.monthly_ai_budget_usd === ''
-        ? null : userForm.monthly_ai_budget_usd;
+      payload.monthly_ai_budget_usd = userForm.monthly_ai_budget_usd;
       if (!payload.password) delete payload.password;
       await request(method, path, { json: payload });
       setUserForm(emptyUser); setNotice('Usuário salvo.'); await refresh();
@@ -236,7 +235,7 @@ export default function AdminPage() {
         <ul className="admin-list">{sectors.map((sector) => <li key={sector.id}>
           <div><strong>{sector.name}</strong><small>{sector.slug} · {sector.member_count} membros · {sector.is_active ? 'Ativo' : 'Inativo'} · {sector.max_upload_minutes ? `até ${sector.max_upload_minutes} min por arquivo` : 'sem limite por arquivo'} · {sector.max_monthly_minutes_per_user ? `${sector.max_monthly_minutes_per_user} min/mês por pessoa` : 'sem cota mensal'} · {sector.monthly_ai_budget_usd ? `IA até US$ ${sector.monthly_ai_budget_usd}/mês` : 'IA sem teto setorial'}</small></div>
           <div className="admin-actions"><Button onClick={() => showMembers(sector)}>Membros</Button><Button onClick={() => showSectorAI(sector)}>Configurar IA</Button>
-              <Button onClick={() => setSectorForm({ id: sector.id, name: sector.name, slug: sector.slug, is_active: sector.is_active, max_upload_minutes: sector.max_upload_minutes ?? '', max_monthly_minutes_per_user: sector.max_monthly_minutes_per_user ?? '', monthly_ai_budget_usd: sector.monthly_ai_budget_usd ?? '' })}>Editar</Button></div>
+              <Button onClick={() => setSectorForm({ id: sector.id, name: sector.name, slug: sector.slug, is_active: sector.is_active, max_upload_minutes: sector.max_upload_minutes ?? '', max_monthly_minutes_per_user: sector.max_monthly_minutes_per_user ?? '', monthly_ai_budget_usd: sector.monthly_ai_budget_usd ?? null })}>Editar</Button></div>
         </li>)}</ul>
         <div className="admin-actions"><Button disabled={sectorPage <= 1} onClick={() => loadPage('sectors', sectorPage - 1)}>Anterior</Button><span>Página {sectorPage}</span><Button disabled={!sectorNext} onClick={() => loadPage('sectors', sectorPage + 1)}>Próxima</Button></div>
         {selectedSector ? <div className="admin-members"><h3 className="t-sub">{selectedSector.name}: membros</h3>
@@ -249,7 +248,7 @@ export default function AdminPage() {
         <TextField label="Identificador" hint="Letras minúsculas, números e hífen." value={sectorForm.slug} maxLength={120} required onChange={(e) => setSectorForm({ ...sectorForm, slug: e.target.value })} />
         <TextField label="Duração máxima por áudio/vídeo (minutos)" hint="Vale para cada arquivo enviado por membros do setor; vazio mantém sem limite setorial. O limite global de 5 GiB continua valendo." type="number" min={1} max={10080} value={sectorForm.max_upload_minutes ?? ''} onChange={(e) => setSectorForm({ ...sectorForm, max_upload_minutes: e.target.value })} />
         <TextField label="Cota mensal de mídia por usuário (minutos)" hint="Soma das durações dos arquivos aceitos no mês em America/Sao_Paulo; vazio mantém sem cota. Exclusão ou falha posterior não devolve minutos." type="number" min={1} max={44640} value={sectorForm.max_monthly_minutes_per_user ?? ''} onChange={(e) => setSectorForm({ ...sectorForm, max_monthly_minutes_per_user: e.target.value })} />
-        <TextField label="Teto mensal estimado de IA do setor (US$)" hint="Compartilhado pelos membros; vazio deixa sem teto. Inclui transcrição, ata, mapa, correção e análise de voz. É estimativa local, não fatura nem limite do provedor." type="number" min="0.01" max="1000000" step="0.01" value={sectorForm.monthly_ai_budget_usd ?? ''} onChange={(e) => setSectorForm({ ...sectorForm, monthly_ai_budget_usd: e.target.value })} />
+        <AIBudgetField scope="sector" value={sectorForm.monthly_ai_budget_usd} onChange={(value) => setSectorForm({ ...sectorForm, monthly_ai_budget_usd: value })} />
         {sectorForm.id ? <label className="admin-check"><input type="checkbox" checked={sectorForm.is_active} onChange={(e) => setSectorForm({ ...sectorForm, is_active: e.target.checked })} /> Setor ativo</label> : null}
         <div className="admin-actions"><Button type="submit" variant="primary" disabled={busy}>Salvar setor</Button>{sectorForm.id ? <Button onClick={() => setSectorForm(emptySector)}>Cancelar</Button> : null}</div>
       </form>
@@ -257,7 +256,7 @@ export default function AdminPage() {
       <div className="admin-card"><h2 className="t-sec">Usuários</h2>
         <ul className="admin-list">{users.map((item) => <li key={item.id}>
           <div><strong>{item.username}</strong><small>{item.sector_name || 'Sem setor'} · {item.is_active ? 'Ativo' : 'Inativo'}{item.must_change_password ? ' · Troca de senha pendente' : ''} · {item.monthly_ai_budget_usd ? `IA até US$ ${item.monthly_ai_budget_usd}/mês` : 'IA sem teto pessoal'}</small></div>
-          {!item.is_staff ? <div className="admin-actions"><Button onClick={() => setUserForm({ id: item.id, username: item.username, first_name: item.first_name, last_name: item.last_name, email: item.email, sector_id: item.sector_id, password: '', monthly_ai_budget_usd: item.monthly_ai_budget_usd ?? '' })}>Editar</Button><Button onClick={() => toggleUser(item)}>{item.is_active ? 'Desativar' : 'Ativar'}</Button></div> : null}
+          {!item.is_staff ? <div className="admin-actions"><Button onClick={() => setUserForm({ id: item.id, username: item.username, first_name: item.first_name, last_name: item.last_name, email: item.email, sector_id: item.sector_id, password: '', monthly_ai_budget_usd: item.monthly_ai_budget_usd ?? null })}>Editar</Button><Button onClick={() => toggleUser(item)}>{item.is_active ? 'Desativar' : 'Ativar'}</Button></div> : null}
         </li>)}</ul>
         <div className="admin-actions"><Button disabled={userPage <= 1} onClick={() => loadPage('users', userPage - 1)}>Anterior</Button><span>Página {userPage}</span><Button disabled={!userNext} onClick={() => loadPage('users', userPage + 1)}>Próxima</Button></div>
       </div>
@@ -269,7 +268,7 @@ export default function AdminPage() {
         <label className="at-field"><span className="at-field__label">Setor</span><select className="select" value={userForm.sector_id} required onChange={(e) => setUserForm({ ...userForm, sector_id: e.target.value })}>
           <option value="">Selecione</option>{sectorChoices.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select></label>
-        <TextField label="Teto mensal estimado de IA deste usuário (US$)" hint="Vazio deixa sem teto pessoal; o teto do setor, se houver, ainda se aplica. Estimativa local, não fatura." type="number" min="0.01" max="1000000" step="0.01" value={userForm.monthly_ai_budget_usd ?? ''} onChange={(e) => setUserForm({ ...userForm, monthly_ai_budget_usd: e.target.value })} />
+        <AIBudgetField scope="user" value={userForm.monthly_ai_budget_usd} onChange={(value) => setUserForm({ ...userForm, monthly_ai_budget_usd: value })} />
         <TextField label={userForm.id ? 'Nova senha temporária (opcional)' : 'Senha temporária'} hint="Ao criar ou redefinir a senha, o usuário terá de trocá-la no próximo login." type="password" value={userForm.password} minLength={12} required={!userForm.id} autoComplete="new-password" onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} />
         <div className="admin-actions"><Button type="submit" variant="primary" disabled={busy}>Salvar usuário</Button>{userForm.id ? <Button onClick={() => setUserForm(emptyUser)}>Cancelar</Button> : null}</div>
       </form>

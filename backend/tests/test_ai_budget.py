@@ -252,3 +252,55 @@ def test_exhausted_personal_budget_rejects_regeneration_before_enqueue(api, user
     enqueue.assert_not_called()
     meeting.refresh_from_db()
     assert meeting.status == "transcrito" and meeting.job_id is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(("sector_cap", "user_cap", "denied_scope"), [
+    (None, None, None), ("0.01", None, "sector"), (None, "0.01", "user"),
+])
+def test_unlimited_scope_keeps_tracking_and_does_not_bypass_other_cap(
+    user, sector_cap, user_cap, denied_scope,
+):
+    sector = user.membership.sector
+    sector.monthly_ai_budget_usd = sector_cap
+    sector.save(update_fields=["monthly_ai_budget_usd"])
+    user.membership.monthly_ai_budget_usd = user_cap
+    user.membership.save(update_fields=["monthly_ai_budget_usd"])
+    meeting = Meeting.objects.create(owner=user, title="Sem teto opcional")
+    def call():
+        return response("unlimited-scope-test")
+
+    if denied_scope:
+        with pytest.raises(AIBudgetExceeded) as error:
+            tracked_openai_call(call, context(meeting, user), "gpt-6-luna",
+                                reservation_usd=Decimal("0.02"))
+        assert error.value.scope == denied_scope
+        assert not AIUsageEvent.objects.exists()
+    else:
+        tracked_openai_call(call, context(meeting, user), "gpt-6-luna",
+                            reservation_usd=Decimal("50.00"))
+        assert AIUsageEvent.objects.get().estimated_usd > 0
+        assert budget_snapshot(sector.pk, user.pk)["user_used_usd"] > 0
+
+
+@pytest.mark.django_db
+def test_staff_can_remove_existing_caps_without_erasing_costs(api, user, other_user):
+    sector = user.membership.sector
+    sector.monthly_ai_budget_usd = Decimal("1")
+    sector.save(update_fields=["monthly_ai_budget_usd"])
+    other_user.membership.monthly_ai_budget_usd = Decimal("0.50")
+    other_user.membership.save(update_fields=["monthly_ai_budget_usd"])
+    meeting = Meeting.objects.create(owner=other_user, title="Remover teto")
+    tracked_openai_call(lambda: response("before-unlimited"), context(meeting, other_user),
+                        "gpt-6-luna", reservation_usd=Decimal("0.10"))
+    user.is_staff = True
+    user.save(update_fields=["is_staff"])
+    assert api.patch(f"/api/admin/sectors/{sector.pk}/", {
+        "monthly_ai_budget_usd": None,
+    }, format="json").status_code == 200
+    assert api.patch(f"/api/admin/users/{other_user.pk}/", {
+        "monthly_ai_budget_usd": None,
+    }, format="json").status_code == 200
+    snapshot = budget_snapshot(sector.pk, other_user.pk)
+    assert snapshot["sector_limit_usd"] is snapshot["user_limit_usd"] is None
+    assert snapshot["user_used_usd"] > 0 and AIUsageEvent.objects.count() == 1

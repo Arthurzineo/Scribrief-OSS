@@ -97,4 +97,6 @@ Código original sob [AGPL-3.0-only](LICENSE), com uso comercial permitido e obr
 
 ## Orçamento e envios da candidata alpha.2
 
+No candidato atual, marque **Sem teto mensal de IA** no formulário de setor/usuário para não impor limite naquele nível; desmarque e preencha um valor para limitá-lo. Os gastos estimados continuam registrados. Sem teto pessoal não ignora o teto do setor. A opção é administrativa e não faz consulta de custos oficiais à OpenAI.
+
 No painel, Setores/Usuários permitem teto mensal estimado de IA em US$; vazio deixa sem teto local. Custos e uso mostra saldo ao filtrar setor/pessoa. Isso não substitui a fatura ou limites do provedor. Há um upload em andamento por instalação; novos envios podem retornar 429 até ele terminar. Staging privado sem confirmação expira em 2 horas. As quotas iniciais são 20 GiB globais/10 GiB por usuário e piso de 1 GiB livre, configuráveis pelas variáveis públicas de `deploy/beta.env.example`. Teto por arquivo de no máximo 5 GiB. Consulte [arquitetura e limites](ARCHITECTURE.md) e [atualização](UPGRADE.md) antes de trocar uma instalação existente.

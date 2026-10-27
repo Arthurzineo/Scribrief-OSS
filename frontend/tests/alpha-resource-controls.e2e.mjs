@@ -35,7 +35,7 @@ try {
         else data = { count: 1, results: [sector] };
       } else if (path.includes('/api/admin/users/')) {
         if (method !== 'GET') saved.push(route.request().postDataJSON());
-        data = { count: 1, results: [{ id: 2, username: 'colega', sector_id: 1, sector_name: 'Sintético', is_active: true }] };
+        data = { count: 1, results: [{ id: 2, username: 'colega', sector_id: 1, sector_name: 'Sintético', is_active: true, monthly_ai_budget_usd: '2.25' }] };
       } else if (path.includes('/usage/summary/')) data = {
         totals: { calls: 0, failed: 0, unavailable: 0, estimated_total_usd: '0', minutes_usd: '0' }, by_user: [], by_sector: [],
       };
@@ -55,20 +55,41 @@ try {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
     });
     await page.goto(`${base}/admin`, { waitUntil: 'networkidle' });
+    const sectorUnlimited = page.getByRole('checkbox', { name: 'Sem teto mensal de IA do setor', exact: true });
+    await sectorUnlimited.waitFor({ timeout: 2000 });
+    assert.ok(await sectorUnlimited.isChecked());
+    await sectorUnlimited.uncheck();
     await page.getByLabel('Nome', { exact: true }).fill('Novo setor');
     await page.getByLabel('Identificador', { exact: true }).fill('novo-setor');
     await page.getByLabel('Teto mensal estimado de IA do setor (US$)', { exact: true }).fill('12.50');
     await page.getByRole('button', { name: 'Salvar setor', exact: true }).click();
     await page.getByText('Setor salvo.', { exact: true }).waitFor();
     assert.equal(saved[0].monthly_ai_budget_usd, '12.50');
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
+    assert.equal(await sectorUnlimited.isChecked(), false);
+    await sectorUnlimited.check();
+    assert.ok(await page.getByLabel('Teto mensal estimado de IA do setor (US$)', { exact: true }).isDisabled());
+    await page.getByRole('button', { name: 'Salvar setor', exact: true }).click();
+    await page.getByText('Setor salvo.', { exact: true }).waitFor();
+    assert.equal(saved.at(-1).monthly_ai_budget_usd, null);
     await page.getByRole('tab', { name: 'Usuários', exact: true }).click();
+    const userUnlimited = page.getByRole('checkbox', { name: 'Sem teto mensal de IA deste usuário', exact: true });
+    assert.ok(await userUnlimited.isChecked());
+    await userUnlimited.uncheck();
     await page.getByLabel('Usuário', { exact: true }).fill('novo');
     await page.getByRole('combobox').first().selectOption('1');
     await page.getByLabel('Senha temporária', { exact: true }).fill('Synthetic-UI-Password-123');
     await page.getByLabel('Teto mensal estimado de IA deste usuário (US$)', { exact: true }).fill('2.25');
     await page.getByRole('button', { name: 'Salvar usuário', exact: true }).click();
     await page.getByText('Usuário salvo.', { exact: true }).waitFor();
-    assert.equal(saved[1].monthly_ai_budget_usd, '2.25');
+    assert.equal(saved.at(-1).monthly_ai_budget_usd, '2.25');
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
+    assert.equal(await userUnlimited.isChecked(), false);
+    await userUnlimited.check();
+    assert.ok(await page.getByLabel('Teto mensal estimado de IA deste usuário (US$)', { exact: true }).isDisabled());
+    await page.getByRole('button', { name: 'Salvar usuário', exact: true }).click();
+    await page.getByText('Usuário salvo.', { exact: true }).waitFor();
+    assert.equal(saved.at(-1).monthly_ai_budget_usd, null);
     await page.getByRole('tab', { name: 'Custos e uso', exact: true }).click();
     await page.getByRole('combobox').first().selectOption('1');
     await page.getByRole('button', { name: 'Filtrar', exact: true }).click();
